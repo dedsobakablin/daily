@@ -161,8 +161,6 @@
   .date-tab { padding: 6px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 12px; box-shadow: var(--shadow); }
   .date-tab.active { background: var(--text); color: white; border-color: var(--text); }
   .date-tab.today { border-color: var(--accent); border-width: 2px; }
-
-  /* ФИНАНСЫ */
   .fin-panel { background: var(--card); border-radius: 12px; padding: 24px; box-shadow: var(--shadow); border-left: 4px solid #b8c8a4; margin-bottom: 16px; }
   .fin-section { margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px dashed var(--border); }
   .fin-section:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
@@ -178,62 +176,110 @@
   .fin-item .amount { font-weight: bold; white-space: nowrap; }
   .fin-item .amount.minus { color: #b04040; }
   .fin-item .amount.plus { color: #4a7a4a; }
-  .fin-item .cat { font-size: 12px; color: #6a4a25; margin-left: 6px; }
-  .fin-totals { padding: 16px; background: rgba(184, 200, 164, 0.15); border-left: 3px solid #b8c8a4; border-radius: 6px; font-size: 14px; line-height: 2; }
-  .fin-totals b { color: var(--text); font-size: 16px; }
   .fin-delete { background: transparent; border: none; cursor: pointer; color: var(--muted); font-size: 14px; padding: 0 4px; }
   .fin-delete:hover { color: #b04040; }
+  .fin-totals { padding: 16px; background: rgba(184, 200, 164, 0.15); border-left: 3px solid #b8c8a4; border-radius: 6px; font-size: 14px; line-height: 2; }
+  .fin-totals b { color: var(--text); font-size: 16px; }
+  .auth-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #f7f5f2 0%, #e8e0d0 100%); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .auth-box { background: white; border-radius: 16px; padding: 40px; max-width: 400px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.15); text-align: center; }
+  .auth-box h2 { font-size: 24px; margin-bottom: 12px; color: #2a2a2a; font-weight: normal; }
+  .auth-box p { font-size: 14px; color: #8a8a8a; margin-bottom: 24px; line-height: 1.6; }
+  .auth-btn { background: linear-gradient(180deg, #4285f4 0%, #357ae8 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-family: inherit; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; }
+  .auth-btn:hover { background: linear-gradient(180deg, #357ae8 0%, #2860c8 100%); }
+  .auth-btn .google-icon { width: 18px; height: 18px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #4285f4; font-size: 13px; }
+  .auth-user { display: flex; align-items: center; gap: 10px; padding: 6px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; font-size: 12px; box-shadow: var(--shadow); }
+  .auth-user img { width: 24px; height: 24px; border-radius: 50%; }
+  .auth-user .logout { cursor: pointer; color: var(--muted); font-size: 11px; }
+  .auth-user .logout:hover { color: #b04040; }
+  .loading { text-align: center; padding: 40px; color: var(--muted); font-style: italic; }
 </style>
 </head>
 <body>
 
-<div class="top-bar">
-  <div style="display:flex;align-items:center;flex-wrap:wrap;">
-    <h1 style="margin-right: 12px;">Мой ежедневник</h1>
-    <div class="diamond-panel" onclick="setMainTab('shop')" title="Открыть магазин">
-      <span class="diamond-icon">💎</span>
-      <span id="diamondBalance">0</span>
+<div id="authScreen" class="auth-screen" style="display:none;">
+  <div class="auth-box">
+    <h2>Мой ежедневник</h2>
+    <p>Войди через Google, чтобы синхронизировать данные между устройствами.</p>
+    <button class="auth-btn" onclick="signInWithGoogle()">
+      <span class="google-icon">G</span>
+      Войти через Google
+    </button>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+  <div class="top-bar">
+    <div style="display:flex;align-items:center;flex-wrap:wrap;">
+      <h1 style="margin-right: 12px;">Мой ежедневник</h1>
+      <div class="diamond-panel" onclick="setMainTab('shop')" title="Открыть магазин">
+        <span class="diamond-icon">💎</span>
+        <span id="diamondBalance">0</span>
+      </div>
+      <div class="auth-user" id="authUserBox">
+        <img id="userAvatar" src="" alt="">
+        <span id="userName"></span>
+        <span class="logout" onclick="signOutUser()">выйти</span>
+      </div>
+    </div>
+    <label class="upload-label">📷 Своя картинка<input type="file" accept="image/*" style="display:none" onchange="uploadBg(event)"></label>
+  </div>
+  <p class="subtitle">Академ 2026–2027 · долги, творчество, жизнь</p>
+
+  <div class="main-tabs">
+    <div class="main-tab active" data-main="days" onclick="setMainTab('days')">📅 По дням</div>
+    <div class="main-tab" data-main="archive" onclick="setMainTab('archive')">📦 Архив</div>
+    <div class="main-tab" data-main="health" onclick="setMainTab('health')">💚 Здоровье</div>
+    <div class="main-tab" data-main="clean" onclick="setMainTab('clean')">🧹 Уборка</div>
+    <div class="main-tab" data-main="menu" onclick="setMainTab('menu')">🍽 Меню</div>
+    <div class="main-tab" data-main="finance" onclick="setMainTab('finance')">💰 Финансы</div>
+    <div class="main-tab" data-main="goals" onclick="setMainTab('goals')">🎯 Цели</div>
+  </div>
+
+  <div class="summary">
+    <div><div class="label">Выполнено</div><div class="big" id="totalDone">0</div></div>
+    <div><div class="label">Из</div><div class="big" id="totalAll">0</div></div>
+    <div><div class="label">Прогресс</div><div class="big" id="totalPercent">0%</div></div>
+    <div class="top-buttons">
+      <button class="small" onclick="exportData()">Экспорт</button>
+      <label class="small-btn">Импорт<input type="file" accept=".json" style="display:none" onchange="importData(event)"></label>
     </div>
   </div>
-  <label class="upload-label">📷 Своя картинка<input type="file" accept="image/*" style="display:none" onchange="uploadBg(event)"></label>
-</div>
-<p class="subtitle">Академ 2026–2027 · долги, творчество, жизнь</p>
 
-<div class="main-tabs">
-  <div class="main-tab active" data-main="days" onclick="setMainTab('days')">📅 По дням</div>
-  <div class="main-tab" data-main="health" onclick="setMainTab('health')">💚 Здоровье</div>
-  <div class="main-tab" data-main="clean" onclick="setMainTab('clean')">🧹 Уборка</div>
-  <div class="main-tab" data-main="menu" onclick="setMainTab('menu')">🍽 Меню</div>
-  <div class="main-tab" data-main="goals" onclick="setMainTab('goals')">🎯 Цели</div>
-  <div class="main-tab" data-main="finance" onclick="setMainTab('finance')">💰 Финансы</div>
-  <div class="main-tab" data-main="archive" onclick="setMainTab('archive')">📦 Архив</div>
+  <div class="tabs" id="tabs"></div>
+  <div id="content"></div>
+  <button class="add-card-btn" id="addCardBtn" onclick="addCard()" style="display:none;">+ Добавить карточку</button>
+  <div class="toast" id="toast"></div>
 </div>
 
-<div class="summary">
-  <div><div class="label">Выполнено</div><div class="big" id="totalDone">0</div></div>
-  <div><div class="label">Из</div><div class="big" id="totalAll">0</div></div>
-  <div><div class="label">Прогресс</div><div class="big" id="totalPercent">0%</div></div>
-  <div class="top-buttons">
-    <button class="small" onclick="exportData()">Экспорт</button>
-    <label class="small-btn">Импорт<input type="file" accept=".json" style="display:none" onchange="importData(event)"></label>
-  </div>
-</div>
+<div id="loadingScreen" class="loading" style="display:none;">Загрузка данных из облака...</div>
 
-<div class="tabs" id="tabs"></div>
-<div id="content"></div>
-<button class="add-card-btn" id="addCardBtn" onclick="addCard()" style="display:none;">+ Добавить карточку</button>
-<div class="toast" id="toast"></div>
-<script>
-const STORAGE_KEY = 'daily_progress_v16';
-const BG_KEY = 'daily_bg_v2';
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const FIN_CATEGORIES = ['Еда','Кафе/доставка','Транспорт','Дом','Здоровье и уход','Учёба','Творчество','Развлечения','Кредитка','Кредитка Дани','Помощь Дане','Копилка (Сочи)','Резерв','Прочее'];
+const firebaseConfig = {
+  apiKey: "AIzaSyD2PIkXL-IhuFEThqOPNm1Ewq7JgHX5pno",
+  authDomain: "daily-app-a3837.firebaseapp.com",
+  projectId: "daily-app-a3837",
+  storageBucket: "daily-app-a3837.firebasestorage.app",
+  messagingSenderId: "314002569422",
+  appId: "1:314002569422:web:a03e605ee15f825649f89f"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+const provider = new GoogleAuthProvider();
+  const FIN_CATEGORIES = ['Еда','Кафе/доставка','Транспорт','Дом','Здоровье и уход','Учёба','Творчество','Развлечения','Кредитка','Кредитка Дани','Помощь Дане','Копилка (Сочи)','Резерв','Прочее'];
 
 const DEFAULT_SUBJECTS = [
   { id:'graphics', name:'Графика в дизайне', meta:'Настольная игра', cls:'graphics', tasks:['Отрисовать поле с нуля','Отрисовать 21 карточку','Отрисовать дизайн коробки','Распечатать все компоненты','Собрать коробку и разложить комплектующие'] },
   { id:'drawing', name:'Рисунок', meta:'Голова + натюрморт', cls:'drawing', tasks:['Доделать первый разворот головы','Начать второй разворот головы','Натянуть планшет под натюрморт','Загрунтовать планшет','Нарисовать натюрморт'] },
   { id:'composition', name:'Композиция', meta:'Книга', cls:'composition', tasks:['Выбрать произведение','Нарисовать 10 иллюстраций','Нарисовать иллюстрацию для обложки','Сверстать книгу','Распечатать книгу','Собрать книгу'] },
-  { id:'painting', name:'Живопись', meta:'8 портретов', cls:'painting', tasks:['Сделать 8 эскизов портретов','Портрет №1','Портрет №2','Портрет №3','Портрет №4','Портрет №5','Портрет №6','Портрет №7','Портрет №8'] },
+  { id:'painting', name:'Живопись', meta:'8 портретов', cls:'painting', tasks:['Натянуть планшет','Загрунтовать планшет','Сделать 8 эскизов портретов','Портрет №1','Портрет №2','Портрет №3','Портрет №4','Портрет №5','Портрет №6','Портрет №7','Портрет №8'] },
   { id:'practice', name:'Практика', meta:'Архитектурная отмывка', cls:'practice', tasks:['Выбрать здание для отмывки','Сделать чертёж','Выполнить отмывку','Оформить и сдать'] },
   { id:'creative', name:'Творчество', meta:'Стримы, тикток', cls:'creative', tasks:['Оформить Twitch-канал','Оформить TikTok-аккаунт','Тестовая запись (10 мин)','Первый стрим или видео'] },
   { id:'life', name:'Жизнь и быт', meta:'Финансы, дом, Даня', cls:'life', tasks:['Разобрать финансы (кредитки)','Помочь Дане закрыть кредитку до 02.11','Отложить первые деньги на Сочи','Аэропорт — встреча подруги','Поменять паспорт (до 22.10): фото, заявление, забрать'] }
@@ -250,17 +296,17 @@ const DEFAULT_DAYS = [
 ];
 
 const DEFAULT_MEAL_PLAN = {
-  week: '05.10 – 11.10',
+  week: '12.10 – 18.10',
   days: [
-    { day:'Пн', breakfast:'Овсянка с бананом', lunch:'Суп куриный с вермишелью', lunchBatch:'на 3 дня', dinner:'Гречка + куриное филе + тушёные овощи' },
-    { day:'Вт', breakfast:'Творог + мёд + орехи', lunch:'Суп куриный', lunchBatch:'остался', dinner:'Паста с тушёной индейкой', dinnerBatch:'на 2 дня' },
-    { day:'Ср', breakfast:'Яичница + овощи', lunch:'Суп куриный', lunchBatch:'последний', dinner:'Паста с индейкой', dinnerBatch:'осталась' },
-    { day:'Чт', breakfast:'Овсянка с яблоком', lunch:'Плов с курицей', lunchBatch:'на 2 дня', dinner:'Салат + яйцо + сыр' },
-    { day:'Пт', breakfast:'Творог + ягоды', lunch:'Плов', lunchBatch:'остался', dinner:'Запечённый минтай + картофель' },
-    { day:'Сб', breakfast:'Сырники', breakfastBatch:'на 2 дня', lunch:'Щи из свежей капусты', lunchBatch:'на 3 дня', dinner:'Сырники + сметана', dinnerBatch:'остались' },
-    { day:'Вс', breakfast:'Омлет с сыром', lunch:'Щи', lunchBatch:'остались', dinner:'Запечённая курица с овощами', dinnerBatch:'на 2 дня' }
+    { day:'Пн', breakfast:'Овсянка с яблоком и корицей', lunch:'Борщ', lunchBatch:'на 3 дня', dinner:'Куриное филе в сливочном соусе + рис' },
+    { day:'Вт', breakfast:'Омлет с сыром и помидорами', lunch:'Борщ', lunchBatch:'остался', dinner:'Тушёная картошка с курицей', dinnerBatch:'на 2 дня' },
+    { day:'Ср', breakfast:'Творог + мёд + грецкие орехи', lunch:'Борщ', lunchBatch:'последний', dinner:'Тушёная картошка', dinnerBatch:'осталась' },
+    { day:'Чт', breakfast:'Сырники', breakfastBatch:'на 2 дня', lunch:'Гречка с грибами', lunchBatch:'на 2 дня', dinner:'Салат «Цезарь» с курицей' },
+    { day:'Пт', breakfast:'Сырники', breakfastBatch:'остались', lunch:'Гречка с грибами', lunchBatch:'осталась', dinner:'Запечённая горбуша + овощи' },
+    { day:'Сб', breakfast:'Блины с творогом', lunch:'Крем-суп из тыквы', lunchBatch:'на 2 дня', dinner:'Котлеты из индейки + пюре' },
+    { day:'Вс', breakfast:'Яичница с беконом', lunch:'Крем-суп из тыквы', lunchBatch:'остался', dinner:'Свинина, тушёная с черносливом', dinnerBatch:'на 2 дня' }
   ],
-  shopping: 'Курица (филе + бёдра) 1,5 кг · индейка 500 г · минтай 500 г · яйца 20 шт · творог 1 кг · молоко 1 л · овсянка, гречка, рис, паста, вермишель · капуста, морковь, лук, картофель, помидоры, огурцы · бананы, яблоки, ягоды · мёд, орехи, сыр, сметана, масло · хлеб'
+  shopping: 'Курица (филе + бёдра) 1,5 кг · индейка (фарш) 500 г · свинина (нежирная) 500 г · горбуша 500 г · яйца 20 шт · творог 1 кг · молоко 1 л · гречка, рис, овсянка, мука, макароны · свёкла, капуста, морковь, лук, картофель, тыква, помидоры, огурцы, грибы (шампиньоны) · чернослив · бананы, яблоки · мёд, орехи, сыр, сметана, сливки, масло · хлеб'
 };
 
 const DEFAULT_CLEAN = {
@@ -278,31 +324,12 @@ const DEFAULT_CLEAN = {
 };
 
 const DEFAULT_FINANCE = {
-  incomes: [
-    { id: 'inc_1', date: '2026-10-05', source: 'ЗП', amount: 30000, distribution: { credit: 5000, life: 12000, sochi: 5000, reserve: 3000, other: 5000 } }
-  ],
-  expenses: []
+  incomes: [],
+  expenses: [],
+  initialCreditDebt: 0
 };
 
-function loadState() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (raw && raw.subjects) {
-      if (!raw.days) raw.days = JSON.parse(JSON.stringify(DEFAULT_DAYS));
-      if (!raw.comments) raw.comments = {};
-      if (!raw.done) raw.done = {};
-      if (!raw.archive) raw.archive = [];
-      if (!raw.mealPlan) raw.mealPlan = JSON.parse(JSON.stringify(DEFAULT_MEAL_PLAN));
-      if (typeof raw.diamonds !== 'number') raw.diamonds = 0;
-      if (!raw.shop) raw.shop = { purchasesThisWeek: 0, lastResetWeek: null };
-      if (!raw.completedCards) raw.completedCards = {};
-      if (!raw.clean || !raw.clean.zones) raw.clean = JSON.parse(JSON.stringify(DEFAULT_CLEAN));
-      if (!raw.healthByDate) raw.healthByDate = {};
-      if (!raw.diamondLog) raw.diamondLog = [];
-      if (!raw.finance) raw.finance = JSON.parse(JSON.stringify(DEFAULT_FINANCE));
-      return raw;
-    }
-  } catch(e) {}
+function defaultState() {
   return {
     subjects: JSON.parse(JSON.stringify(DEFAULT_SUBJECTS)),
     days: JSON.parse(JSON.stringify(DEFAULT_DAYS)),
@@ -317,16 +344,18 @@ function loadState() {
     finance: JSON.parse(JSON.stringify(DEFAULT_FINANCE))
   };
 }
-function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 
-let state = loadState();
+let state = null;
+let currentUser = null;
+let unsubscribeSnapshot = null;
 let activeMain = 'days';
 let activeTab = 'all';
 let healthViewDate = null;
+let isRendering = false;
 
 function uid() { return 'c' + Date.now() + Math.random().toString(36).slice(2,6); }
 function taskKey(a,b){ return a+'::'+b; }
-function isDone(a,b){ return !!state.done[taskKey(a,b)]; }
+function isDone(a,b){ return state.done[taskKey(a,b)] ? true : false; }
 function getComment(a,b){ return state.comments[taskKey(a,b)] || ''; }
 function getCardById(id){ return state.subjects.find(s=>s.id===id) || state.days.find(d=>d.id===id); }
 function cardProgress(c){ const done=c.tasks.filter((_,i)=>isDone(c.id,i)).length; return {done,total:c.tasks.length}; }
@@ -336,7 +365,63 @@ function totalProgress(){
   state.days.forEach(d=>{const p=cardProgress(d);done+=p.done;total+=p.total;});
   return {done,total};
 }
-function renderSummary(){
+function dateKey(d) {
+  const dt = d || new Date();
+  return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+}
+function getWeekKey() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1 - day);
+  d.setDate(d.getDate() + diff);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function getHealth(dateStr) {
+  if (!state.healthByDate) state.healthByDate = {};
+  if (!state.healthByDate[dateStr]) {
+    state.healthByDate[dateStr] = { water: 0, vitamins: {}, training: false, sleep: null, applied: null };
+  }
+  return state.healthByDate[dateStr];
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function showToast(msg, isError){
+  const el=document.getElementById('toast');
+  if (!el) return;
+  el.textContent=msg;
+  el.classList.toggle('error', !!isError);
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>el.classList.remove('show'), 2500);
+}
+function updateDiamondBalance() {
+  const el = document.getElementById('diamondBalance');
+  if (el) el.textContent = state.diamonds || 0;
+}
+function logDiamonds(amount, reason, dateStr) {
+  if (!state.diamondLog) state.diamondLog = [];
+  state.diamondLog.push({ ts: Date.now(), amount: amount, reason: reason, balanceAfter: state.diamonds || 0, date: dateStr || dateKey() });
+  if (state.diamondLog.length > 1000) state.diamondLog = state.diamondLog.slice(-1000);
+}
+
+// === Сохранение в Firestore (с дебаунсом) ===
+let saveTimeout = null;
+function saveState() {
+  if (!currentUser) return;
+  // Кэш в localStorage для мгновенной загрузки
+  try { localStorage.setItem('daily_cache_' + currentUser.uid, JSON.stringify(state)); } catch(e){}
+  // Дебаунс: сохраняем через 1.5 сек после последнего изменения
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(async () => {
+    try {
+      const ref = doc(db, 'users', currentUser.uid, 'data', 'state');
+      await setDoc(ref, state);
+    } catch(e) {
+      console.error('Save error:', e);
+      showToast('Ошибка сохранения: ' + e.message, true);
+    }
+  }, 1500);
+}
+  function renderSummary(){
   const {done,total}=totalProgress();
   const percent= total? Math.round(done/total*100):0;
   document.getElementById('totalDone').textContent=done;
@@ -370,53 +455,7 @@ function renderTabs(){
   el.innerHTML=tabs.map(t=>'<div class="tab '+(activeTab===t.id?'active':'')+' '+(t.isToday?'today':'')+'" title="'+(t.fullName||t.name)+'" onclick="setTab(\''+t.id+'\')">'+t.name+'</div>').join('');
 }
 function setTab(id){ activeTab=id; render(); }
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function showToast(msg, isError){
-  const el=document.getElementById('toast');
-  el.textContent=msg;
-  el.classList.toggle('error', !!isError);
-  el.classList.add('show');
-  clearTimeout(el._t);
-  el._t=setTimeout(()=>el.classList.remove('show'), 2500);
-}
-function updateDiamondBalance() {
-  const el = document.getElementById('diamondBalance');
-  if (el) el.textContent = state.diamonds || 0;
-}
-function getWeekKey() {
-  const d = new Date();
-  const day = d.getDay();
-  const diff = (day === 0 ? -6 : 1 - day);
-  d.setDate(d.getDate() + diff);
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-}
-function dateKey(d) {
-  const dt = d || new Date();
-  return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
-}
-function logDiamonds(amount, reason, dateStr) {
-  if (!state.diamondLog) state.diamondLog = [];
-  state.diamondLog.push({ ts: Date.now(), amount: amount, reason: reason, balanceAfter: state.diamonds || 0, date: dateStr || dateKey() });
-  if (state.diamondLog.length > 1000) state.diamondLog = state.diamondLog.slice(-1000);
-}
-function addDiamonds(n, msg, reason, dateStr) {
-  const before = state.diamonds || 0;
-  state.diamonds = Math.max(0, before + n);
-  const actual = (state.diamonds || 0) - before;
-  if (actual !== 0 || n !== 0) logDiamonds(actual, reason || msg || (n > 0 ? '+' + n : n + ''), dateStr);
-  saveState();
-  if (msg) showToast(msg, n < 0);
-  updateDiamondBalance();
-}
-function getHealth(dateStr) {
-  if (!state.healthByDate) state.healthByDate = {};
-  if (!state.healthByDate[dateStr]) {
-    state.healthByDate[dateStr] = { water: 0, vitamins: {}, training: false, sleep: null, applied: null };
-  }
-  return state.healthByDate[dateStr];
-}
-</script>
-<script>
+
 function renderCard(card, cls, metaOverride){
   const p=cardProgress(card);
   const percent= p.total? Math.round(p.done/p.total*100):0;
@@ -430,14 +469,11 @@ function renderCard(card, cls, metaOverride){
   }).join('');
   const isDay = !!state.days.find(d=>d.id===card.id);
   const finishBtn = isDay ? '<button class="card-finish" onclick="finishDay(\''+card.id+'\')">Завершить</button>' : '';
-
   const mealBlock = card.meal ? '<div style="margin-top:14px;padding:10px 14px;background:rgba(200,184,160,0.18);border-left:2px solid #c8b8a0;border-radius:6px;font-size:13px;font-style:italic;color:#5a5a5a;">🍽 ' + escapeHtml(card.meal) + '</div>' : '';
-
   const trainBlock = (() => {
     if (!['wed','fri','sun'].includes(card.id)) return '';
     return '<div style="margin-top:10px;padding:10px 14px;background:rgba(164,200,184,0.12);border-left:2px solid #a4c8b8;border-radius:6px;font-size:13px;color:#4a5a4a;">💪 Тренировка: ВК</div>';
   })();
-
   const cleanBlock = (() => {
     const c = state.clean;
     if (!c || !c.zones) return '';
@@ -446,7 +482,6 @@ function renderCard(card, cls, metaOverride){
     const names = notDone.map(k => c.zones[k].name).join(', ');
     return '<div style="margin-top:10px;padding:10px 14px;background:rgba(200,184,160,0.12);border-left:2px solid #c8b8a0;border-radius:6px;font-size:13px;color:#5a5a5a;">🧹 Осталось убрать: ' + escapeHtml(names) + '</div>';
   })();
-
   return '<div class="card '+cls+'"><button class="card-delete" onclick="deleteCard(\''+card.id+'\')">×</button>'+finishBtn+'<h2>'+escapeHtml(card.name)+'</h2><div class="meta">'+escapeHtml(metaOverride||card.meta||'')+' · '+p.done+'/'+p.total+' · '+percent+'%</div><div class="progress-wrap"><div class="progress-bar" style="width:'+percent+'%"></div></div>'+tasksHtml+mealBlock+trainBlock+cleanBlock+'<div class="add-task"><input type="text" placeholder="Новая задача..." onkeydown="if(event.key===\'Enter\')addTask(\''+card.id+'\',this)"><button onclick="addTaskFromBtn(\''+card.id+'\',this)">+</button></div></div>';
 }
 
@@ -457,8 +492,8 @@ function toggle(a,b){
   const isGoalCard = state.subjects.some(s => s.id === a);
   if (isGoalCard) {
     const card = state.subjects.find(s => s.id === a);
-    if (!was && state.done[k]) addDiamonds(5, '+5 💎', 'Задача в цели: ' + (card ? card.name : a));
-    else if (was && !state.done[k]) addDiamonds(-5, '-5 💎', 'Снята задача: ' + (card ? card.name : a));
+    if (!was && state.done[k]) { state.diamonds = (state.diamonds||0) + 5; logDiamonds(5, 'Задача в цели: ' + (card ? card.name : a)); showToast('+5 💎'); }
+    else if (was && !state.done[k]) { state.diamonds = Math.max(0,(state.diamonds||0) - 5); logDiamonds(-5, 'Снята задача: ' + (card ? card.name : a)); showToast('-5 💎', true); }
     checkCardCompletion(a);
   }
   saveState(); render();
@@ -469,44 +504,37 @@ function checkCardCompletion(cardId) {
   const allDone = card.tasks.length > 0 && card.tasks.every((_, i) => isDone(cardId, i));
   const alreadyBonus = state.completedCards && state.completedCards[cardId];
   if (allDone && !alreadyBonus) {
-    addDiamonds(25, '🎉 Карточка закрыта! +25 💎', 'Бонус: ' + card.name);
+    state.diamonds = (state.diamonds||0) + 25;
+    logDiamonds(25, 'Бонус: ' + card.name);
+    showToast('🎉 Карточка закрыта! +25 💎');
     state.completedCards = state.completedCards || {};
     state.completedCards[cardId] = true;
   } else if (!allDone && alreadyBonus) {
-    addDiamonds(-25, '-25 💎', 'Снят бонус: ' + card.name);
+    state.diamonds = Math.max(0,(state.diamonds||0) - 25);
+    logDiamonds(-25, 'Снят бонус: ' + card.name);
     delete state.completedCards[cardId];
   }
   saveState();
 }
-
-/* ============ ЗДОРОВЬЕ ============ */
 
 function renderHealth(){
   const el = document.getElementById('content');
   const today = new Date();
   const todayStr = dateKey(today);
   if (!healthViewDate) healthViewDate = todayStr;
-
   const dates = [];
-  for (let i = 0; i < 14; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    dates.push(d);
-  }
+  for (let i = 0; i < 14; i++) { const d = new Date(today); d.setDate(d.getDate() - i); dates.push(d); }
   const dateTabs = dates.map(d => {
-    const ds = dateKey(d);
-    const isToday = ds === todayStr;
+    const ds = dateKey(d); const isToday = ds === todayStr;
     const dayNames = ['вс','пн','вт','ср','чт','пт','сб'];
     const label = String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + ' ' + dayNames[d.getDay()];
     return '<div class="date-tab '+(healthViewDate===ds?'active':'')+' '+(isToday?'today':'')+'" onclick="setHealthDate(\''+ds+'\')">'+label+'</div>';
   }).join('');
-
   const h = getHealth(healthViewDate);
   const dayOfWeek = new Date(healthViewDate + 'T12:00:00').getDay();
   const dayId = ['sun','mon','tue','wed','thu','fri','sat'][dayOfWeek];
   const isTrainingDay = ['wed','fri','sun'].includes(dayId);
   const isWeekendDay = ['sat','sun'].includes(dayId);
-
   let trainingHtml;
   if (isTrainingDay) {
     const done = !!h.training;
@@ -516,21 +544,13 @@ function renderHealth(){
     const todayD = new Date(healthViewDate + 'T12:00:00');
     const todayDow = todayD.getDay();
     let daysAhead = 0;
-    for (let i = 1; i <= 7; i++) {
-      const check = (todayDow + i) % 7;
-      if (trainingDays.includes(check)) { daysAhead = i; break; }
-    }
-    const nextDate = new Date(todayD);
-    nextDate.setDate(nextDate.getDate() + daysAhead);
+    for (let i = 1; i <= 7; i++) { const check = (todayDow + i) % 7; if (trainingDays.includes(check)) { daysAhead = i; break; } }
+    const nextDate = new Date(todayD); nextDate.setDate(nextDate.getDate() + daysAhead);
     const nextStr = String(nextDate.getDate()).padStart(2,'0') + '.' + String(nextDate.getMonth()+1).padStart(2,'0');
     const label = daysAhead === 1 ? 'завтра' : nextStr;
     trainingHtml = '<div style="font-size:13px;color:var(--muted);font-style:italic;">Сегодня не тренировочный день. Ближайшая тренировка: '+label+' — Тренировка ВК.</div>';
   }
-
-  const waterHtml = Array.from({length: 5}, (_, i) =>
-    '<div class="water-glass '+(i < h.water ? 'done' : '')+'" onclick="setWaterDate('+(i+1)+')">💧</div>'
-  ).join('');
-
+  const waterHtml = Array.from({length: 5}, (_, i) => '<div class="water-glass '+(i < h.water ? 'done' : '')+'" onclick="setWaterDate('+(i+1)+')">💧</div>').join('');
   const vitaminSlots = [
     { id:'morning', label:'Утро', sub:'Омега-3, C, D3' },
     { id:'noon', label:'Обед', sub:'Омега-3, D3, B12' },
@@ -540,7 +560,6 @@ function renderHealth(){
     const done = !!h.vitamins[v.id];
     return '<label class="vitamin-row '+(done?'done':'')+'"><input type="checkbox" '+(done?'checked':'')+' onchange="toggleVitaminDate(\''+v.id+'\')"><span class="vitamin-time">'+v.label+'</span><span class="vitamin-label">'+v.sub+'</span></label>';
   }).join('');
-
   const nextDayMap2 = { 'sun':'mon', 'mon':'tue', 'tue':'wed', 'wed':'thu', 'thu':'fri', 'fri':'sat', 'sat':'sun' };
   const nextDay2 = nextDayMap2[dayId];
   const isOfficeTomorrow2 = ['mon','thu'].includes(nextDay2);
@@ -549,7 +568,6 @@ function renderHealth(){
   if (isWeekendTomorrow2) { sleepLimit = '01:00'; sleepMax = '01:30'; }
   else if (isOfficeTomorrow2) { sleepLimit = '23:30'; sleepMax = '00:00'; }
   else { sleepLimit = '00:00'; sleepMax = '00:30'; }
-
   let sleepStatusHtml = '';
   if (h.sleep && h.sleep.time) {
     const status = h.sleep.status;
@@ -559,7 +577,6 @@ function renderHealth(){
   } else {
     sleepStatusHtml = '<div style="font-size:13px;color:var(--muted);margin-top:8px;font-style:italic;">Отбой ещё не отмечен.</div>';
   }
-
   let infoHtml = '';
   if (h.applied && h.applied.closed) {
     const net = (h.applied.diamonds || 0) - (h.applied.penalty || 0);
@@ -568,9 +585,7 @@ function renderHealth(){
   } else {
     infoHtml = '<div style="margin-top:16px;font-size:12px;color:var(--muted);font-style:italic;">День ещё не закрыт. Все начисления и штрафы будут применены, когда нажмёшь «Завершить» в карточке дня (раздел «По дням»).</div>';
   }
-
   const dateLabel = healthViewDate === todayStr ? 'Сегодня' : 'Просмотр: ' + healthViewDate;
-
   el.innerHTML = '<div class="health-panel">'
     +'<div class="date-selector">'+dateTabs+'</div>'
     +'<div style="font-size:18px;margin-bottom:16px;color:var(--text);">'+dateLabel+'</div>'
@@ -589,41 +604,16 @@ function renderHealth(){
     +infoHtml
   +'</div>';
 }
-
 function setHealthDate(ds) { healthViewDate = ds; renderHealth(); }
-function getCurrentDayId() {
-  const d = new Date(healthViewDate + 'T12:00:00');
-  return ['sun','mon','tue','wed','thu','fri','sat'][d.getDay()];
-}
-function toggleTrainingDate() {
-  const h = getHealth(healthViewDate);
-  h.training = !h.training;
-  saveState();
-  renderHealth();
-}
-function setWaterDate(n) {
-  const h = getHealth(healthViewDate);
-  h.water = (n === h.water) ? 0 : n;
-  saveState();
-  renderHealth();
-}
-function toggleVitaminDate(slot) {
-  const h = getHealth(healthViewDate);
-  h.vitamins[slot] = !h.vitamins[slot];
-  saveState();
-  renderHealth();
-}
-function markSleepNow() {
-  const now = new Date();
-  const hh = String(now.getHours()).padStart(2,'0');
-  const mm = String(now.getMinutes()).padStart(2,'0');
-  setSleepTime(hh + ':' + mm);
-}
+function getCurrentDayId() { const d = new Date(healthViewDate + 'T12:00:00'); return ['sun','mon','tue','wed','thu','fri','sat'][d.getDay()]; }
+function toggleTrainingDate() { const h = getHealth(healthViewDate); h.training = !h.training; saveState(); renderHealth(); }
+function setWaterDate(n) { const h = getHealth(healthViewDate); h.water = (n === h.water) ? 0 : n; saveState(); renderHealth(); }
+function toggleVitaminDate(slot) { const h = getHealth(healthViewDate); h.vitamins[slot] = !h.vitamins[slot]; saveState(); renderHealth(); }
+function markSleepNow() { const now = new Date(); const hh = String(now.getHours()).padStart(2,'0'); const mm = String(now.getMinutes()).padStart(2,'0'); setSleepTime(hh + ':' + mm); }
 function setSleepTime(timeStr) {
   if (!/^\d{1,2}:\d{2}$/.test(timeStr)) { showToast('Введи время в формате ЧЧ:ММ', true); return; }
   const [hhStr, mmStr] = timeStr.split(':');
-  const hh = parseInt(hhStr, 10);
-  const mm = parseInt(mmStr, 10);
+  const hh = parseInt(hhStr, 10); const mm = parseInt(mmStr, 10);
   if (isNaN(hh) || isNaN(mm) || hh < 0 || hh > 23 || mm < 0 || mm > 59) { showToast('Некорректное время', true); return; }
   const h = getHealth(healthViewDate);
   const dayId = getCurrentDayId();
@@ -631,13 +621,11 @@ function setSleepTime(timeStr) {
   const nextDay = nextDayMap[dayId];
   const isOfficeTomorrow = ['mon','thu'].includes(nextDay);
   const isWeekendTomorrow = ['sat','sun'].includes(nextDay);
-
   let totalMin = hh * 60 + mm;
   if (totalMin < 300) totalMin += 1440;
-
   let status = 'bad';
   if (isWeekendTomorrow) {
-    if (totalMin >= 1380 && totalMin <= 1500) status = 'good';
+    if (totalMin >= 1440 && totalMin <= 1500) status = 'good';
     else if (totalMin > 1500 && totalMin <= 1530) status = 'ok';
     else status = 'bad';
   } else if (isOfficeTomorrow) {
@@ -654,46 +642,23 @@ function setSleepTime(timeStr) {
   renderHealth();
   showToast('Отбой: ' + timeStr);
 }
-function clearSleep() {
-  const h = getHealth(healthViewDate);
-  h.sleep = null;
-  saveState();
-  renderHealth();
-  showToast('Отбой снят');
-}
-
-/* ============ УБОРКА ============ */
+function clearSleep() { const h = getHealth(healthViewDate); h.sleep = null; saveState(); renderHealth(); showToast('Отбой снят'); }
 
 function renderClean(){
   const el = document.getElementById('content');
-  if (!state.clean.zones) {
-    state.clean = JSON.parse(JSON.stringify(DEFAULT_CLEAN));
-    saveState();
-  }
+  if (!state.clean.zones) { state.clean = JSON.parse(JSON.stringify(DEFAULT_CLEAN)); saveState(); }
   const c = state.clean;
   const thisWeek = getWeekKey();
-  if (c.weekStart !== thisWeek) {
-    Object.keys(c.zones).forEach(k => { c.zones[k].doneAt = null; });
-    c.weekStart = thisWeek;
-    c.bonusGiven = false;
-    saveState();
-  }
-
+  if (c.weekStart !== thisWeek) { Object.keys(c.zones).forEach(k => { c.zones[k].doneAt = null; }); c.weekStart = thisWeek; c.bonusGiven = false; saveState(); }
   const zoneKeys = ['kitchen','bathroom','hallway','room','vacuum','dust'];
   const doneCount = zoneKeys.filter(k => c.zones[k].doneAt).length;
   const allDone = doneCount === 6;
-
   const zonesHtml = zoneKeys.map(k => {
-    const z = c.zones[k];
-    const done = !!z.doneAt;
+    const z = c.zones[k]; const done = !!z.doneAt;
     let dateStr = '';
-    if (done) {
-      const parts = z.doneAt.split('-');
-      dateStr = parts[2] + '.' + parts[1];
-    }
+    if (done) { const parts = z.doneAt.split('-'); dateStr = parts[2] + '.' + parts[1]; }
     return '<label class="clean-day '+(done?'done':'')+'"><input type="checkbox" '+(done?'checked':'')+' onchange="toggleCleanZone(\''+k+'\')"><span class="clean-day-name">'+z.name+'</span><span class="clean-day-zone">'+(done ? 'убрана ' + dateStr : 'не убрана')+'</span></label>';
   }).join('');
-
   el.innerHTML = '<div class="clean-panel">'
     +'<div class="clean-header"><div class="clean-title">Уборка на неделю</div>'
       +'<button class="clean-dacha-btn '+(c.dachaMode?'active':'')+'" onclick="toggleDacha()">'+(c.dachaMode ? '🏠 На даче' : '🏡 Уезжаем на дачу')+'</button>'
@@ -704,71 +669,35 @@ function renderClean(){
       +'<b>Правила:</b><br>'
       +'· Каждая зона — <b>+10 💎</b>, когда отмечаешь<br>'
       +'· Все 6 зон за неделю — <b>бонус +20 💎</b><br>'
-      +'· Неделя начинается с понедельника, зоны обнуляются автоматически<br>'
-      +'· Нет штрафов — не отметила, значит не получила'
+      +'· Неделя начинается с понедельника, зоны обнуляются автоматически'
     +'</div>'
   +'</div>';
 }
-
 function toggleCleanZone(key) {
-  const c = state.clean;
-  if (!c.zones[key]) return;
-  const z = c.zones[key];
-  const wasDone = !!z.doneAt;
-  if (wasDone) {
-    z.doneAt = null;
-    addDiamonds(-10, '-10 💎', 'Снята уборка: ' + z.name);
-  } else {
-    z.doneAt = dateKey();
-    addDiamonds(10, '+10 💎 за уборку: ' + z.name, 'Уборка: ' + z.name);
-  }
+  const c = state.clean; if (!c.zones[key]) return;
+  const z = c.zones[key]; const wasDone = !!z.doneAt;
+  if (wasDone) { z.doneAt = null; state.diamonds = Math.max(0,(state.diamonds||0)-10); logDiamonds(-10, 'Снята уборка: ' + z.name); showToast('-10 💎', true); }
+  else { z.doneAt = dateKey(); state.diamonds = (state.diamonds||0)+10; logDiamonds(10, 'Уборка: ' + z.name); showToast('+10 💎 за уборку'); }
   const allDone = ['kitchen','bathroom','hallway','room','vacuum','dust'].every(k => c.zones[k].doneAt);
-  if (allDone && !c.bonusGiven) {
-    c.bonusGiven = true;
-    addDiamonds(20, '🎉 Все зоны убраны! +20 💎', 'Бонус: все зоны уборки');
-  } else if (!allDone && c.bonusGiven) {
-    c.bonusGiven = false;
-    addDiamonds(-20, '-20 💎', 'Снят бонус за все зоны');
-  }
-  saveState();
-  renderClean();
+  if (allDone && !c.bonusGiven) { c.bonusGiven = true; state.diamonds = (state.diamonds||0)+20; logDiamonds(20, 'Бонус: все зоны уборки'); showToast('🎉 Все зоны убраны! +20 💎'); }
+  else if (!allDone && c.bonusGiven) { c.bonusGiven = false; state.diamonds = Math.max(0,(state.diamonds||0)-20); logDiamonds(-20, 'Снят бонус за все зоны'); }
+  saveState(); renderClean();
 }
-function toggleDacha() {
-  state.clean.dachaMode = !state.clean.dachaMode;
-  saveState();
-  renderClean();
-}
-
-/* ============ МАГАЗИН ============ */
+function toggleDacha() { state.clean.dachaMode = !state.clean.dachaMode; saveState(); renderClean(); }
 
 const SHOP_PRICE = 100;
 const SHOP_LIMIT = 2;
-
 function renderShop(){
   const el = document.getElementById('content');
   const balance = state.diamonds || 0;
   const weekKey = getWeekKey();
   if (!state.shop) state.shop = { purchasesThisWeek: 0, lastResetWeek: null };
-  if (state.shop.lastResetWeek !== weekKey) {
-    state.shop.purchasesThisWeek = 0;
-    state.shop.lastResetWeek = weekKey;
-    saveState();
-  }
+  if (state.shop.lastResetWeek !== weekKey) { state.shop.purchasesThisWeek = 0; state.shop.lastResetWeek = weekKey; saveState(); }
   const used = state.shop.purchasesThisWeek;
   const canBuy = balance >= SHOP_PRICE && used < SHOP_LIMIT;
-
   const itemHtml = (used >= SHOP_LIMIT)
     ? '<div class="shop-used">✅ На этой неделе лимит исчерпан ('+SHOP_LIMIT+' из '+SHOP_LIMIT+'). Возвращайся в понедельник.</div>'
-    : '<div class="shop-item">'
-        +'<div class="shop-item-name">Разрешение на покупку</div>'
-        +'<div class="shop-item-desc">Вещь, которую ты давно хочешь, но жаба душит купить. Не еда, не транспорт, не бытовуха. Что-то для себя.</div>'
-        +'<div class="shop-item-price">Цена: '+SHOP_PRICE+' 💎</div>'
-        +'<div class="shop-limit">Использовано на этой неделе: '+used+' / '+SHOP_LIMIT+'</div>'
-        +'<div style="margin-top:12px;"><button class="shop-buy" '+(canBuy?'':'disabled')+' onclick="buyShop()">'
-          +(canBuy ? 'Купить за '+SHOP_PRICE+' 💎' : (balance < SHOP_PRICE ? 'Не хватает '+(SHOP_PRICE - balance)+' 💎' : 'Лимит исчерпан'))
-        +'</button></div>'
-      +'</div>';
-
+    : '<div class="shop-item"><div class="shop-item-name">Разрешение на покупку</div><div class="shop-item-desc">Вещь, которую ты давно хочешь, но жаба душит купить. Не еда, не транспорт, не бытовуха. Что-то для себя.</div><div class="shop-item-price">Цена: '+SHOP_PRICE+' 💎</div><div class="shop-limit">Использовано на этой неделе: '+used+' / '+SHOP_LIMIT+'</div><div style="margin-top:12px;"><button class="shop-buy" '+(canBuy?'':'disabled')+' onclick="buyShop()">'+(canBuy ? 'Купить за '+SHOP_PRICE+' 💎' : (balance < SHOP_PRICE ? 'Не хватает '+(SHOP_PRICE - balance)+' 💎' : 'Лимит исчерпан'))+'</button></div></div>';
   const log = (state.diamondLog || []).slice().reverse().slice(0, 100);
   const logHtml = log.length === 0
     ? '<div class="empty-archive" style="padding:20px;">Пока нет записей</div>'
@@ -777,108 +706,62 @@ function renderShop(){
         const dateStr = String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
         const sign = entry.amount > 0 ? '+' : '';
         const color = entry.amount > 0 ? '#4a7a4a' : (entry.amount < 0 ? '#b04040' : 'var(--muted)');
-        return '<div style="display:flex;justify-content:space-between;padding:8px 12px;border-bottom:1px dashed var(--border);font-size:13px;gap:10px;">'
-          +'<div style="flex:1;"><span style="color:var(--muted);font-size:12px;margin-right:8px;">'+dateStr+'</span>'+escapeHtml(entry.reason)+'</div>'
-          +'<div style="color:'+color+';font-weight:bold;white-space:nowrap;">'+sign+entry.amount+' 💎</div>'
-        +'</div>';
+        return '<div style="display:flex;justify-content:space-between;padding:8px 12px;border-bottom:1px dashed var(--border);font-size:13px;gap:10px;"><div style="flex:1;"><span style="color:var(--muted);font-size:12px;margin-right:8px;">'+dateStr+'</span>'+escapeHtml(entry.reason)+'</div><div style="color:'+color+';font-weight:bold;white-space:nowrap;">'+sign+entry.amount+' 💎</div></div>';
       }).join('');
-
   el.innerHTML = '<div class="shop-panel">'
     +'<div class="shop-header"><div class="shop-title">Магазин</div><div class="shop-balance"><span>💎</span><span>'+balance+'</span></div></div>'
     +itemHtml
-    +'<div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border);">'
-      +'<div style="font-size:16px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;">История операций</div>'
-      +logHtml
-    +'</div>'
-    +'<div class="shop-note">'
-      +'<b>Как заработать алмазики:</b><br>'
-      +'· +5 💎 за задачу в целях · +25 💎 бонус за карточку<br>'
-      +'· +15 💎 за тренировку · +1 💎 за стакан воды (макс. 5)<br>'
-      +'· +1 💎 за приём витаминов · +10 💎 за сон вовремя<br>'
-      +'· +10 💎 за каждую зону уборки · +20 бонус за все 6<br><br>'
-      +'<b>Ограничения:</b> '+SHOP_LIMIT+' покупки в неделю.'
-    +'</div>'
+    +'<div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border);"><div style="font-size:16px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;">История операций</div>'+logHtml+'</div>'
+    +'<div class="shop-note"><b>Как заработать алмазики:</b><br>· +5 💎 за задачу в целях · +25 💎 бонус за карточку<br>· +15 💎 за тренировку · +1 💎 за стакан воды (макс. 5)<br>· +1 💎 за приём витаминов · +10 💎 за сон вовремя<br>· +10 💎 за каждую зону уборки · +20 бонус за все 6<br><br><b>Ограничения:</b> '+SHOP_LIMIT+' покупки в неделю.</div>'
   +'</div>';
 }
 function buyShop() {
   const balance = state.diamonds || 0;
   const weekKey = getWeekKey();
   if (!state.shop) state.shop = { purchasesThisWeek: 0, lastResetWeek: weekKey };
-  if (state.shop.lastResetWeek !== weekKey) {
-    state.shop.purchasesThisWeek = 0;
-    state.shop.lastResetWeek = weekKey;
-  }
+  if (state.shop.lastResetWeek !== weekKey) { state.shop.purchasesThisWeek = 0; state.shop.lastResetWeek = weekKey; }
   if (balance < SHOP_PRICE || state.shop.purchasesThisWeek >= SHOP_LIMIT) return;
   if (!confirm('Купить разрешение на покупку за '+SHOP_PRICE+' 💎? Использовано: '+state.shop.purchasesThisWeek+'/'+SHOP_LIMIT)) return;
-  addDiamonds(-SHOP_PRICE, '💎 Разрешение куплено!', 'Покупка: Разрешение на покупку');
+  state.diamonds = balance - SHOP_PRICE;
+  logDiamonds(-SHOP_PRICE, 'Покупка: Разрешение на покупку');
   state.shop.purchasesThisWeek += 1;
-  saveState();
-  render();
+  saveState(); render();
+  showToast('💎 Разрешение куплено!');
 }
-
-/* ============ ФИНАНСЫ ============ */
 
 function renderFinance(){
   const el = document.getElementById('content');
   const f = state.finance || { incomes: [], expenses: [] };
-
-  // === Поступления ===
+  const round2 = (n) => Math.round(n * 100) / 100;
   const incomesHtml = f.incomes.length === 0
     ? '<div style="font-size:13px;color:var(--muted);font-style:italic;">Пока нет поступлений</div>'
     : f.incomes.map(inc => {
         const d = inc.distribution || {};
-        const distLines = [
-          d.credit ? 'Кредитка: ' + d.credit + ' ₽' : '',
-          d.creditDan ? 'Кредитка Дани: ' + d.creditDan + ' ₽' : '',
-          d.life ? 'Жизнь: ' + d.life + ' ₽' : '',
-          d.sochi ? 'Сочи: ' + d.sochi + ' ₽' : '',
-          d.reserve ? 'Резерв: ' + d.reserve + ' ₽' : '',
-          d.other ? 'Прочее: ' + d.other + ' ₽' : ''
-        ].filter(Boolean).join(' · ');
+        const distLines = [d.credit ? 'Кредитка: ' + d.credit + ' ₽' : '', d.creditDan ? 'Кредитка Дани: ' + d.creditDan + ' ₽' : '', d.life ? 'Жизнь: ' + d.life + ' ₽' : '', d.sochi ? 'Сочи: ' + d.sochi + ' ₽' : '', d.reserve ? 'Резерв: ' + d.reserve + ' ₽' : '', d.other ? 'Прочее: ' + d.other + ' ₽' : ''].filter(Boolean).join(' · ');
         const [y,m,day] = inc.date.split('-');
         return '<div class="fin-item" style="flex-direction:column;align-items:flex-start;gap:4px;"><div style="display:flex;justify-content:space-between;width:100%;"><div><span class="date">'+day+'.'+m+'.'+y+'</span>'+escapeHtml(inc.source)+'</div><div class="amount plus">+'+inc.amount+' ₽</div></div><div style="font-size:12px;color:var(--muted);">'+distLines+'</div></div>';
       }).join('');
-
-  // === Траты ===
   const expensesHtml = f.expenses.length === 0
     ? '<div style="font-size:13px;color:var(--muted);font-style:italic;">Пока нет трат</div>'
     : f.expenses.slice().reverse().map(e => {
         const [y,m,day] = e.date.split('-');
-        const src = e.source || 'main'; // старая запись без source — считаем основным
+        const src = e.source || 'main';
         const srcLabel = src === 'credit' ? ' 💳' : '';
         return '<div class="fin-item"><div><span class="date">'+day+'.'+m+'</span>'+escapeHtml(e.cat)+(e.comment ? ' — ' + escapeHtml(e.comment) : '')+srcLabel+'</div><div class="amount minus">−'+e.amount+' ₽ <button class="fin-delete" onclick="deleteExpense(\''+e.id+'\')">×</button></div></div>';
       }).join('');
-
   const catOptions = FIN_CATEGORIES.map(c => '<option value="'+c+'">'+c+'</option>').join('');
-
-  // === Итоги ===
-    const round2 = (n) => Math.round(n * 100) / 100;
   const totalIncome = round2(f.incomes.reduce((s, i) => s + (i.amount || 0), 0));
   const totalExpense = round2(f.expenses.reduce((s, e) => s + (e.amount || 0), 0));
-
   const expensesMain = round2(f.expenses.filter(e => (e.source || 'main') === 'main' && e.cat !== 'Кредитка').reduce((s, e) => s + (e.amount || 0), 0));
   const expensesCredit = round2(f.expenses.filter(e => e.source === 'credit').reduce((s, e) => s + (e.amount || 0), 0));
   const creditPayments = round2(f.expenses.filter(e => e.cat === 'Кредитка').reduce((s, e) => s + (e.amount || 0), 0));
-
   const balanceMain = round2(totalIncome - expensesMain - creditPayments);
   const initialCreditDebt = (state.finance && state.finance.initialCreditDebt) ? state.finance.initialCreditDebt : 0;
   const creditDebt = round2(Math.max(0, initialCreditDebt + expensesCredit - creditPayments));
-
-  // По категориям распределено
   let totalCredit = 0, totalCreditDan = 0, totalLife = 0, totalSochi = 0, totalReserve = 0, totalOther = 0;
-  f.incomes.forEach(i => {
-    const d = i.distribution || {};
-    totalCredit += d.credit || 0;
-    totalCreditDan += d.creditDan || 0;
-    totalLife += d.life || 0;
-    totalSochi += d.sochi || 0;
-    totalReserve += d.reserve || 0;
-    totalOther += d.other || 0;
-  });
-
+  f.incomes.forEach(i => { const d = i.distribution || {}; totalCredit += d.credit || 0; totalCreditDan += d.creditDan || 0; totalLife += d.life || 0; totalSochi += d.sochi || 0; totalReserve += d.reserve || 0; totalOther += d.other || 0; });
   el.innerHTML = '<div class="fin-panel">'
-    +'<div class="fin-section">'
-      +'<div class="fin-title">💰 Поступления</div>'
+    +'<div class="fin-section"><div class="fin-title">💰 Поступления</div>'
       +'<div class="fin-row"><label>Дата</label><input type="date" id="finIncDate" value="'+dateKey()+'"></div>'
       +'<div class="fin-row"><label>Источник</label><input type="text" id="finIncSource" placeholder="ЗП, премия, кэшбэк"></div>'
       +'<div class="fin-row"><label>Сумма, ₽</label><input type="number" id="finIncAmount" step="0.01" placeholder="30000"></div>'
@@ -891,8 +774,7 @@ function renderFinance(){
       +'<div class="fin-row"><button class="fin-btn" onclick="addIncome()">+ Добавить поступление</button></div>'
       +'<div class="fin-list">'+incomesHtml+'</div>'
     +'</div>'
-    +'<div class="fin-section">'
-      +'<div class="fin-title">💸 Траты</div>'
+    +'<div class="fin-section"><div class="fin-title">💸 Траты</div>'
       +'<div class="fin-row"><label>Дата</label><input type="date" id="finExpDate" value="'+dateKey()+'"></div>'
       +'<div class="fin-row"><label>Категория</label><select id="finExpCat">'+catOptions+'</select></div>'
       +'<div class="fin-row"><label>Сумма, ₽</label><input type="number" id="finExpAmount" step="0.01" placeholder="500"></div>'
@@ -901,8 +783,7 @@ function renderFinance(){
       +'<div class="fin-row"><button class="fin-btn" onclick="addExpense()">+ Добавить трату</button></div>'
       +'<div class="fin-list">'+expensesHtml+'</div>'
     +'</div>'
-    +'<div class="fin-section">'
-      +'<div class="fin-title">📊 Итоги</div>'
+    +'<div class="fin-section"><div class="fin-title">📊 Итоги</div>'
       +'<div class="fin-totals">'
         +'<div>Поступило всего: <b>'+totalIncome+' ₽</b></div>'
         +'<div>Потрачено с основного счёта: <b>'+expensesMain+' ₽</b></div>'
@@ -910,10 +791,9 @@ function renderFinance(){
         +'<div>Платежи на кредитку: <b>'+creditPayments+' ₽</b></div>'
         +'<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);">'
           +'<div>💵 Баланс основного: <b style="color:'+(balanceMain >= 0 ? '#4a7a4a' : '#b04040')+';">'+balanceMain+' ₽</b></div>'
-                    +'<div>💳 Долг по кредитке: <b style="color:'+(creditDebt > 0 ? '#b04040' : '#4a7a4a')+';">'+creditDebt+' ₽</b></div>'
+          +'<div>💳 Долг по кредитке: <b style="color:'+(creditDebt > 0 ? '#b04040' : '#4a7a4a')+';">'+creditDebt+' ₽</b></div>'
           +'<div style="font-size:12px;color:var(--muted);margin-top:6px;">Начальный долг: '+initialCreditDebt+' ₽ · Траты с кредитки: '+expensesCredit+' ₽ · Платежи: '+creditPayments+' ₽ · <span onclick="editInitialDebt()" style="cursor:pointer;text-decoration:underline;">изменить</span></div>'
         +'</div>'
-        +'<div style="margin-top:12px;font-size:13px;color:var(--muted);">Распределено из поступлений: Кредитка '+totalCredit+' ₽ · Кредитка Дани '+totalCreditDan+' ₽ · Жизнь '+totalLife+' ₽ · Сочи '+totalSochi+' ₽ · Резерв '+totalReserve+' ₽ · Прочее '+totalOther+' ₽</div>'
       +'</div>'
     +'</div>'
   +'</div>';
@@ -924,25 +804,9 @@ function addIncome(){
   const amount = parseFloat(document.getElementById('finIncAmount').value) || 0;
   if (!date || !amount) { showToast('Заполни дату и сумму', true); return; }
   if (!state.finance) state.finance = { incomes: [], expenses: [] };
-  state.finance.incomes.push({
-    id: 'inc_' + Date.now(),
-    date: date,
-    source: source || 'Поступление',
-    amount: amount,
-    distribution: {
-      credit: parseFloat(document.getElementById('finIncCredit').value) || 0,
-      creditDan: parseFloat(document.getElementById('finIncCreditDan').value) || 0,
-      life: parseFloat(document.getElementById('finIncLife').value) || 0,
-      sochi: parseFloat(document.getElementById('finIncSochi').value) || 0,
-      reserve: parseFloat(document.getElementById('finIncReserve').value) || 0,
-      other: parseFloat(document.getElementById('finIncOther').value) || 0
-    }
-  });
-  saveState();
-  renderFinance();
-  showToast('Поступление добавлено');
+  state.finance.incomes.push({ id: 'inc_' + Date.now(), date: date, source: source || 'Поступление', amount: amount, distribution: { credit: parseFloat(document.getElementById('finIncCredit').value) || 0, creditDan: parseFloat(document.getElementById('finIncCreditDan').value) || 0, life: parseFloat(document.getElementById('finIncLife').value) || 0, sochi: parseFloat(document.getElementById('finIncSochi').value) || 0, reserve: parseFloat(document.getElementById('finIncReserve').value) || 0, other: parseFloat(document.getElementById('finIncOther').value) || 0 } });
+  saveState(); renderFinance(); showToast('Поступление добавлено');
 }
-
 function addExpense(){
   const date = document.getElementById('finExpDate').value;
   const cat = document.getElementById('finExpCat').value;
@@ -951,42 +815,21 @@ function addExpense(){
   const comment = document.getElementById('finExpComment').value.trim();
   if (!date || !amount) { showToast('Заполни дату и сумму', true); return; }
   if (!state.finance) state.finance = { incomes: [], expenses: [] };
-  state.finance.expenses.push({
-    id: 'exp_' + Date.now(),
-    date: date,
-    cat: cat,
-    amount: amount,
-    source: source,
-    comment: comment
-  });
-  saveState();
-  renderFinance();
-  showToast('Трата добавлена');
+  state.finance.expenses.push({ id: 'exp_' + Date.now(), date: date, cat: cat, amount: amount, source: source, comment: comment });
+  saveState(); renderFinance(); showToast('Трата добавлена');
 }
-
+function deleteExpense(id){ if (!confirm('Удалить эту трату?')) return; state.finance.expenses = state.finance.expenses.filter(e => e.id !== id); saveState(); renderFinance(); }
 function editInitialDebt() {
   if (!state.finance) state.finance = { incomes: [], expenses: [] };
   const current = state.finance.initialCreditDebt || 0;
-  const val = prompt('Начальный долг по кредитке на 05.10.2026 (можно с копейками, через точку):', String(current).replace('.', ','));
+  const val = prompt('Начальный долг по кредитке (можно с копейками):', String(current).replace('.', ','));
   if (val === null) return;
-  // Заменяем запятую на точку
   const normalized = val.replace(',', '.').trim();
   const num = parseFloat(normalized);
   if (isNaN(num) || num < 0) { showToast('Некорректная сумма: ' + val, true); return; }
-  state.finance.initialCreditDebt = Math.round(num * 100) / 100; // округляем до копеек
-  saveState();
-  renderFinance();
-  showToast('Начальный долг: ' + state.finance.initialCreditDebt + ' ₽');
+  state.finance.initialCreditDebt = Math.round(num * 100) / 100;
+  saveState(); renderFinance(); showToast('Начальный долг: ' + state.finance.initialCreditDebt + ' ₽');
 }
-
-function deleteExpense(id){
-  if (!confirm('Удалить эту трату?')) return;
-  state.finance.expenses = state.finance.expenses.filter(e => e.id !== id);
-  saveState();
-  renderFinance();
-}
-
-/* ============ МЕНЮ ============ */
 
 function renderMenu(){
   const el=document.getElementById('content');
@@ -1005,8 +848,6 @@ function renderMenu(){
   +'</div>';
 }
 
-/* ============ АРХИВ ============ */
-
 function renderArchiveRow(entry, idx, openSet){
   const p = { done: entry.tasks.filter(t => t.done).length, total: entry.tasks.length };
   const percent = p.total ? Math.round(p.done/p.total*100) : 0;
@@ -1022,10 +863,14 @@ function renderArchiveMonth(){
   if (!state.archive || state.archive.length === 0) return '<div class="empty-archive">Архив пуст. Заверши день — он появится здесь.</div>';
   const byMonth = {};
   state.archive.forEach((entry, idx) => {
-    const dateStr = entry.archivedAt || '';
+    const dateStr = entry.dayDate || entry.archivedAt || '';
     let key = 'Без даты';
-    const m = dateStr.match(/(\d{2})\.(\d{2})\.(\d{4})/);
-    if (m) key = m[2] + '.' + m[3];
+    const m = dateStr.match(/(\d{4})-(\d{2})/);
+    if (m) key = m[2] + '.' + m[1];
+    else {
+      const m2 = dateStr.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+      if (m2) key = m2[2] + '.' + m2[3];
+    }
     if (!byMonth[key]) byMonth[key] = [];
     byMonth[key].push({ entry, idx });
   });
@@ -1046,8 +891,6 @@ function renderArchiveMonth(){
 function setArchiveMonth(mk){ window._archiveMonth = mk; window._archiveOpen = new Set(); render(); }
 function toggleArchiveRow(id){ if (!window._archiveOpen) window._archiveOpen = new Set(); if (window._archiveOpen.has(id)) window._archiveOpen.delete(id); else window._archiveOpen.add(id); render(); }
 
-/* ============ РЕНДЕР ============ */
-
 function renderContent(){
   const el=document.getElementById('content');
   if(activeMain==='goals'){
@@ -1064,7 +907,12 @@ function renderContent(){
     el.innerHTML=list.map(d=>renderCard(d,'day',d.name)).join('');
   }
 }
-function render(){ renderSummary(); updateDiamondBalance(); renderMainTabs(); renderTabs(); renderContent(); }
+function render(){ 
+  if (isRendering) return;
+  isRendering = true;
+  renderSummary(); updateDiamondBalance(); renderMainTabs(); renderTabs(); renderContent();
+  isRendering = false;
+}
 
 function addTask(cardId, inputEl){ const val=inputEl.value.trim(); if(!val) return; const card=getCardById(cardId); if(!card) return; card.tasks.push(val); inputEl.value=''; saveState(); render(); }
 function addTaskFromBtn(cardId, btn){ addTask(cardId, btn.previousElementSibling); }
@@ -1104,8 +952,7 @@ function saveComment(cardId, idx, btnEl){
 function finishDay(cardId){
   const card = state.days.find(d => d.id === cardId);
   if (!card) return;
-  if (!confirm('Завершить день? Он уйдёт в архив, редактировать его больше нельзя.')) return;
-
+  if (!confirm('Завершить день? Он уйдёт в архив.')) return;
   const today = new Date();
   const todayIdx = today.getDay();
   const dayOrder = ['mon','tue','wed','thu','fri','sat','sun'];
@@ -1113,57 +960,28 @@ function finishDay(cardId){
   const todayOrder = todayIdx === 0 ? 6 : todayIdx - 1;
   let diff = todayOrder - targetIdx;
   if (diff < 0) diff += 7;
-
   const targetDate = new Date(today);
   targetDate.setDate(today.getDate() - diff);
   const targetStr = dateKey(targetDate);
   const dayId = cardId;
-
   const isTrainingDay = ['wed','fri','sun'].includes(dayId);
   const h = getHealth(targetStr);
-
-  let earned = 0;
-  let penalty = 0;
-
+  let earned = 0; let penalty = 0;
   if (isTrainingDay && h.training) { earned += 15; logDiamonds(15, 'Тренировка (' + targetStr + ')', targetStr); }
   if (isTrainingDay && !h.training) { penalty += 15; logDiamonds(-15, 'Пропуск: тренировка (' + targetStr + ')', targetStr); }
-
-  if (h.water > 0) {
-    earned += h.water;
-    logDiamonds(h.water, 'Вода: ' + h.water + '/5 стаканов (' + targetStr + ')', targetStr);
-  }
-
+  if (h.water > 0) { earned += h.water; logDiamonds(h.water, 'Вода: ' + h.water + '/5 (' + targetStr + ')', targetStr); }
   const vitCount = ['morning','noon','evening'].filter(v => h.vitamins[v]).length;
-  ['morning','noon','evening'].forEach(v => {
-    if (h.vitamins[v]) { earned += 1; logDiamonds(1, 'Витамины: ' + v + ' (' + targetStr + ')', targetStr); }
-    else { penalty += 1; logDiamonds(-1, 'Пропуск: витамины ' + v + ' (' + targetStr + ')', targetStr); }
-  });
-
-  if (h.sleep) {
-    if (h.sleep.status === 'good') { earned += 10; logDiamonds(10, 'Сон: отбой ' + h.sleep.time + ' (' + targetStr + ')', targetStr); }
-    else if (h.sleep.status === 'ok') { earned += 5; logDiamonds(5, 'Сон: отбой ' + h.sleep.time + ' (' + targetStr + ')', targetStr); }
-    else { penalty += 5; logDiamonds(-5, 'Сон: поздний отбой ' + h.sleep.time + ' (' + targetStr + ')', targetStr); }
-  } else {
-    penalty += 5;
-    logDiamonds(-5, 'Пропуск: сон не отмечен (' + targetStr + ')', targetStr);
-  }
-
+  ['morning','noon','evening'].forEach(v => { if (h.vitamins[v]) { earned += 1; logDiamonds(1, 'Витамины: ' + v + ' (' + targetStr + ')', targetStr); } else { penalty += 1; logDiamonds(-1, 'Пропуск: витамины ' + v + ' (' + targetStr + ')', targetStr); } });
+  if (h.sleep) { if (h.sleep.status === 'good') { earned += 10; logDiamonds(10, 'Сон: ' + h.sleep.time + ' (' + targetStr + ')', targetStr); } else if (h.sleep.status === 'ok') { earned += 5; logDiamonds(5, 'Сон: ' + h.sleep.time + ' (' + targetStr + ')', targetStr); } else { penalty += 5; logDiamonds(-5, 'Сон: поздний ' + h.sleep.time + ' (' + targetStr + ')', targetStr); } } else { penalty += 5; logDiamonds(-5, 'Пропуск: сон (' + targetStr + ')', targetStr); }
   const cardTasksTotal = card.tasks.length;
   const cardTasksDone = card.tasks.filter((_, i) => isDone(cardId, i)).length;
   const fullDay = cardTasksTotal > 0 && cardTasksDone === cardTasksTotal;
   let dayBonus = 0;
-  if (fullDay) {
-    dayBonus = 15;
-    earned += dayBonus;
-    logDiamonds(dayBonus, '🎯 Бонус за 100% выполнения дня (' + targetStr + ')', targetStr);
-  }
-
+  if (fullDay) { dayBonus = 15; earned += dayBonus; logDiamonds(dayBonus, '🎯 Бонус 100% дня (' + targetStr + ')', targetStr); }
   const net = earned - penalty;
   const before = state.diamonds || 0;
   state.diamonds = Math.max(0, before + net);
-  updateDiamondBalance();
   h.applied = { diamonds: earned, penalty: penalty, closed: true, bonus: dayBonus, fullDay: fullDay };
-
   const targetDateObj = new Date(targetStr + 'T12:00:00');
   const archivedLabel = String(targetDateObj.getDate()).padStart(2,'0') + '.' + String(targetDateObj.getMonth()+1).padStart(2,'0') + '.' + targetDateObj.getFullYear();
   const entryTasks = card.tasks.map((t, i) => ({ text: t, done: isDone(cardId, i), comment: getComment(cardId, i) }));
@@ -1172,37 +990,26 @@ function finishDay(cardId){
   card.tasks = [];
   Object.keys(state.done).forEach(k => { if (k.indexOf(cardId + '::') === 0) delete state.done[k]; });
   Object.keys(state.comments).forEach(k => { if (k.indexOf(cardId + '::') === 0) delete state.comments[k]; });
-
   saveState();
-
-  if (net > 0) showToast('День закрыт. Начислено +' + net + ' 💎');
-  else if (net < 0) showToast('День закрыт. Списано ' + net + ' 💎', true);
-  else showToast('День закрыт. Баланс не изменился.');
-
+  if (net > 0) showToast('День закрыт. +' + net + ' 💎');
+  else if (net < 0) showToast('День закрыт. ' + net + ' 💎', true);
+  else showToast('День закрыт.');
   render();
 }
 
 function restoreDay(archiveIdx){
-  if (!confirm('Вернуть день из архива? Он появится в «По дням» снова, архивная запись удалится.')) return;
+  if (!confirm('Вернуть день из архива?')) return;
   const entry = state.archive[archiveIdx]; if (!entry) return;
   const day = state.days.find(d => d.id === entry.id.split('_')[0]);
-  if (!day) { showToast('Не найден соответствующий день недели', true); return; }
+  if (!day) { showToast('Не найден день недели', true); return; }
   day.tasks = entry.tasks.map(t => t.text);
   entry.tasks.forEach((t, i) => { if (t.done) state.done[day.id + '::' + i] = true; if (t.comment && t.comment.trim()) state.comments[day.id + '::' + i] = t.comment; });
   state.archive.splice(archiveIdx, 1);
-  saveState(); showToast('День возвращён из архива'); render();
+  saveState(); showToast('День возвращён'); render();
 }
 
 function exportData(){
-  const toExport = {
-    subjects: state.subjects, days: state.days, done: state.done, comments: state.comments,
-    archive: state.archive || [], mealPlan: state.mealPlan || null,
-    diamonds: state.diamonds || 0, shop: state.shop || { purchasesThisWeek: 0, lastResetWeek: null },
-    completedCards: state.completedCards || {}, clean: state.clean || JSON.parse(JSON.stringify(DEFAULT_CLEAN)),
-    healthByDate: state.healthByDate || {},
-    diamondLog: state.diamondLog || [],
-    finance: state.finance || { incomes: [], expenses: [] }
-  };
+  const toExport = { subjects: state.subjects, days: state.days, done: state.done, comments: state.comments, archive: state.archive || [], mealPlan: state.mealPlan || null, diamonds: state.diamonds || 0, shop: state.shop || { purchasesThisWeek: 0, lastResetWeek: null }, completedCards: state.completedCards || {}, clean: state.clean || JSON.parse(JSON.stringify(DEFAULT_CLEAN)), healthByDate: state.healthByDate || {}, diamondLog: state.diamondLog || [], finance: state.finance || { incomes: [], expenses: [] } };
   const blob=new Blob([JSON.stringify(toExport,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download='daily-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click(); URL.revokeObjectURL(url);
@@ -1226,7 +1033,15 @@ function importData(ev){
         if(!data.healthByDate) data.healthByDate = {};
         if(!data.diamondLog) data.diamondLog = [];
         if(!data.finance) data.finance = { incomes: [], expenses: [] };
-        state=data; saveState(); render();
+        const localArchive = state.archive || [];
+        const fileArchive = data.archive || [];
+        const seen = new Set();
+        const merged = [];
+        localArchive.forEach(entry => { if (!seen.has(entry.id)) { merged.push(entry); seen.add(entry.id); } });
+        fileArchive.forEach(entry => { if (!seen.has(entry.id)) { merged.push(entry); seen.add(entry.id); } });
+        data.archive = merged;
+        state = data;
+        saveState(); render();
         showToast('Импорт прошёл успешно');
       } else showToast('Неверный формат файла', true);
     } catch(err){ showToast('Ошибка: '+err.message, true); }
@@ -1237,21 +1052,147 @@ function importData(ev){
 function uploadBg(ev){
   const file=ev.target.files[0]; if(!file) return;
   const reader=new FileReader();
-  reader.onload=function(e){ document.body.style.backgroundImage='url(\''+e.target.result+'\')'; localStorage.setItem(BG_KEY, e.target.result); };
+  reader.onload=function(e){ document.body.style.backgroundImage='url(\''+e.target.result+'\')'; localStorage.setItem('daily_bg_v2', e.target.result); };
   reader.readAsDataURL(file); ev.target.value='';
 }
-function initBg(){
-  try{ const saved=localStorage.getItem(BG_KEY); if(saved) document.body.style.backgroundImage='url(\''+saved+'\')'; }catch(e){}
+function initBg(){ try{ const saved=localStorage.getItem('daily_bg_v2'); if(saved) document.body.style.backgroundImage='url(\''+saved+'\')'; }catch(e){} }
+
+// === АУТЕНТИФИКАЦИЯ И СИНХРОНИЗАЦИЯ ===
+window.signInWithGoogle = async function() {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch(e) {
+    console.error(e);
+    alert('Ошибка входа: ' + e.message);
+  }
+};
+
+window.signOutUser = async function() {
+  if (confirm('Выйти из аккаунта?')) {
+    if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+    await signOut(auth);
+  }
+};
+
+async function loadUserData(user) {
+  document.getElementById('loadingScreen').style.display = 'block';
+  document.getElementById('app').style.display = 'none';
+
+  // Сначала пробуем localStorage-кэш — для мгновенной загрузки
+  try {
+    const cached = localStorage.getItem('daily_cache_' + user.uid);
+    if (cached) {
+      const cachedState = JSON.parse(cached);
+      if (cachedState && cachedState.subjects) {
+        state = cachedState;
+        document.getElementById('loadingScreen').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('userAvatar').src = user.photoURL || '';
+        document.getElementById('userName').textContent = user.displayName || user.email || '';
+        render();
+      }
+    }
+  } catch(e) {}
+
+  // Теперь грузим из Firestore
+  const ref = doc(db, 'users', user.uid, 'data', 'state');
+  try {
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      state = snap.data();
+    } else {
+      // В Firestore пусто. Если есть локальный кэш — спросим, переносить ли.
+      const cached = localStorage.getItem('daily_cache_' + user.uid);
+      if (cached) {
+        if (confirm('В облаке нет данных. Перенести текущие локальные данные в облако?')) {
+          state = JSON.parse(cached);
+          await setDoc(ref, state);
+        } else {
+          state = defaultState();
+          await setDoc(ref, state);
+        }
+      } else {
+        state = defaultState();
+        await setDoc(ref, state);
+      }
+    }
+  } catch(e) {
+    console.error('Load error:', e);
+    if (!state) state = defaultState();
+    showToast('Ошибка загрузки: ' + e.message, true);
+  }
+
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('userAvatar').src = user.photoURL || '';
+  document.getElementById('userName').textContent = user.displayName || user.email || '';
+  render();
+
+  // Подписываемся на изменения из облака (для синхронизации между устройствами)
+  if (unsubscribeSnapshot) unsubscribeSnapshot();
+  unsubscribeSnapshot = onSnapshot(ref, (snap) => {
+    if (snap.exists() && !isRendering) {
+      const cloudData = snap.data();
+      // Проверяем, отличаются ли данные (грубо — по кол-ву галочек и diamonds)
+      const cloudDone = Object.keys(cloudData.done || {}).length;
+      const localDone = Object.keys(state.done || {}).length;
+      if (cloudData.diamonds !== state.diamonds || cloudDone !== localDone) {
+        state = cloudData;
+        try { localStorage.setItem('daily_cache_' + user.uid, JSON.stringify(state)); } catch(e){}
+        render();
+      }
+    }
+  });
 }
 
+onAuthStateChanged(auth, async (user) => {
+  currentUser = user;
+  if (user) {
+    document.getElementById('authScreen').style.display = 'none';
+    await loadUserData(user);
+  } else {
+    if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+    document.getElementById('authScreen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('loadingScreen').style.display = 'none';
+  }
+});
+
 initBg();
-(function openTodayTab(){
-  const todayIdx = new Date().getDay();
-  const todayId = ['sun','mon','tue','wed','thu','fri','sat'][todayIdx];
-  activeMain = 'days';
-  activeTab = todayId;
-})();
-render();
+
+// Экспортируем функции в window, чтобы inline-onclick работали
+window.setMainTab = setMainTab;
+window.setTab = setTab;
+window.toggle = toggle;
+window.addTask = addTask;
+window.addTaskFromBtn = addTaskFromBtn;
+window.deleteTask = deleteTask;
+window.deleteCard = deleteCard;
+window.addCard = addCard;
+window.showCommentEditor = showCommentEditor;
+window.hideComment = hideComment;
+window.saveComment = saveComment;
+window.finishDay = finishDay;
+window.restoreDay = restoreDay;
+window.exportData = exportData;
+window.importData = importData;
+window.uploadBg = uploadBg;
+window.setHealthDate = setHealthDate;
+window.toggleTrainingDate = toggleTrainingDate;
+window.setWaterDate = setWaterDate;
+window.toggleVitaminDate = toggleVitaminDate;
+window.markSleepNow = markSleepNow;
+window.setSleepTime = setSleepTime;
+window.clearSleep = clearSleep;
+window.toggleCleanZone = toggleCleanZone;
+window.toggleDacha = toggleDacha;
+window.buyShop = buyShop;
+window.addIncome = addIncome;
+window.addExpense = addExpense;
+window.deleteExpense = deleteExpense;
+window.editInitialDebt = editInitialDebt;
+window.setArchiveMonth = setArchiveMonth;
+window.toggleArchiveRow = toggleArchiveRow;
 </script>
 </body>
 </html>
