@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мой ежедневник</title>
+<style>
+  :root {
+    --bg: #f7f5f2; --card: rgba(255, 255, 255, 0.95); --text: #2a2a2a; --muted: #8a8a8a;
+    --accent: #c8a4a4; --accent2: #a4c8b8; --accent3: #a4b8c8; --accent4: #c8c4a4; --accent5: #b8a4c8;
+    --done: #d4e8d4; --shadow: 0 2px 12px rgba(0,0,0,0.08); --border: #e0ddd8;
+    --overlay-opacity: 0.5; --overlay-color: 255, 250, 245;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif; color: var(--text); line-height: 1.6;
+    padding: 24px 16px 80px; max-width: 900px; margin: 0 auto; min-height: 100vh;
+    background-color: var(--bg); background-size: cover; background-position: center;
+    background-attachment: fixed; background-repeat: no-repeat;
+  }
+  body::before { content: ''; position: fixed; inset: 0; background: rgba(var(--overlay-color), var(--overlay-opacity)); z-index: -1; }
+  h1 { font-size: 30px; font-weight: bold; letter-spacing: 1px; margin-bottom: 6px; color: #1a1a1a; text-shadow: 0 1px 3px rgba(255,255,255,0.9), 0 0 20px rgba(255,255,255,0.6); }
+  .subtitle { font-size: 14px; font-style: italic; margin-bottom: 20px; color: #4a4a4a; text-shadow: 0 1px 2px rgba(255,255,255,0.9); background: rgba(255,255,255,0.5); display: inline-block; padding: 3px 12px; border-radius: 12px; }
+  .top-bar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
+  .upload-label { padding: 6px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 12px; font-family: inherit; color: var(--text); box-shadow: var(--shadow); }
+  .diamond-panel { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; background: linear-gradient(180deg, #e8f0f8 0%, #c8d8e8 100%); border: 2px solid #6a4a25; border-radius: 20px; font-size: 18px; color: #2a4a6a; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: 12px; cursor: pointer; transition: all 0.15s; }
+  .diamond-panel:hover { background: linear-gradient(180deg, #d8e8f8 0%, #b8c8d8 100%); }
+  .diamond-icon { font-size: 20px; }
+  .main-tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+  .main-tab { padding: 8px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 14px; box-shadow: var(--shadow); }
+  .main-tab.active { background: var(--text); color: white; border-color: var(--text); }
+  .tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab { padding: 6px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 13px; box-shadow: var(--shadow); }
+  .tab.active { background: var(--text); color: white; border-color: var(--text); }
+  .tab.today { border-color: var(--accent); border-width: 2px; }
+  .card { position: relative; background: var(--card); border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); border-left: 4px solid var(--accent); }
+  .card.drawing { border-left-color: var(--accent2); } .card.composition { border-left-color: var(--accent3); }
+  .card.painting { border-left-color: var(--accent4); } .card.practice { border-left-color: var(--accent5); }
+  .card.creative { border-left-color: #d4a4a4; } .card.life { border-left-color: #a4d4c8; }
+  .card.custom { border-left-color: #9a8fa8; } .card.day { border-left-color: #c8b8a0; }
+  .card h2 { font-size: 20px; font-weight: normal; margin-bottom: 4px; }
+  .card .meta { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+  .card-delete { position: absolute; top: 12px; right: 12px; width: 24px; height: 24px; border-radius: 50%; background: transparent; border: none; cursor: pointer; color: var(--muted); font-size: 16px; opacity: 0; }
+  .card:hover .card-delete { opacity: 1; }
+  .card-finish { position: absolute; top: 12px; right: 44px; padding: 4px 10px; border-radius: 12px; background: transparent; border: 1px solid var(--border); cursor: pointer; font-size: 11px; color: var(--muted); font-family: inherit; }
+  .card-finish:hover { border-color: var(--text); color: var(--text); }
+  .card-restore { position: absolute; top: 12px; right: 44px; padding: 4px 10px; border-radius: 12px; background: transparent; border: 1px solid var(--border); cursor: pointer; font-size: 11px; color: var(--muted); font-family: inherit; }
+  .card-restore:hover { border-color: #b04040; color: #b04040; }
+  .progress-wrap { background: #eeeae5; border-radius: 8px; height: 8px; margin-bottom: 14px; overflow: hidden; }
+  .progress-bar { height: 100%; background: var(--text); border-radius: 8px; }
+  .task-block { padding: 8px 0; border-bottom: 1px dashed #eeeae5; }
+  .task-block:last-child { border-bottom: none; }
+  .task { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; user-select: none; }
+  .task input[type="checkbox"] { appearance: none; width: 20px; height: 20px; min-width: 20px; border: 1.5px solid #ccc; border-radius: 5px; cursor: pointer; margin-top: 2px; position: relative; }
+  .task input[type="checkbox"]:checked { background: var(--done); border-color: #9c9; }
+  .task input[type="checkbox"]:checked::after { content: "✓"; position: absolute; top: -2px; left: 3px; color: #4a7a4a; font-size: 15px; font-weight: bold; }
+  .task input[type="checkbox"]:disabled { cursor: not-allowed; opacity: 0.7; }
+  .task.done .task-text { text-decoration: line-through; color: var(--muted); }
+  .task-text { flex: 1; }
+  .task-actions { display: flex; gap: 4px; opacity: 0; }
+  .task-block:hover .task-actions { opacity: 1; }
+  .task-btn { background: transparent; border: none; cursor: pointer; color: var(--muted); font-size: 14px; padding: 0 4px; }
+  .task-btn.has-comment { color: var(--accent); opacity: 1; }
+  .comment-display { margin: 6px 0 0 30px; font-size: 13px; font-style: italic; color: #5a5a5a; padding: 6px 10px; background: rgba(200, 164, 164, 0.12); border-left: 2px solid var(--accent); border-radius: 6px; white-space: pre-wrap; }
+  .comment-editor { margin: 6px 0 0 30px; display: none; }
+  .comment-editor.visible { display: block; }
+  .comment-editor textarea { width: 100%; min-height: 50px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); font-family: inherit; font-size: 13px; background: rgba(255,255,255,0.8); color: inherit; resize: vertical; }
+  .comment-controls { display: flex; gap: 6px; margin-top: 6px; }
+  .comment-controls button { font-size: 12px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); cursor: pointer; font-family: inherit; color: var(--text); }
+  .comment-controls button.save { background: var(--text); color: white; border-color: var(--text); }
+  .add-task { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
+  .add-task input { flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); font-family: inherit; font-size: 14px; background: rgba(255,255,255,0.7); color: inherit; }
+  .add-task button { padding: 8px 14px; border-radius: 8px; border: none; background: var(--text); color: white; cursor: pointer; font-family: inherit; font-size: 14px; }
+  .add-card-btn { display: block; width: 100%; padding: 14px; background: transparent; border: 1.5px dashed var(--border); border-radius: 12px; cursor: pointer; font-family: inherit; font-size: 14px; color: var(--muted); margin-bottom: 16px; }
+  .summary { background: var(--card); border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  .summary .big { font-size: 32px; font-weight: bold; }
+  .summary .label { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .top-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+  button.small, label.small-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 12px; font-family: inherit; display: inline-flex; align-items: center; }
+  button.small:hover, label.small-btn:hover { border-color: var(--text); color: var(--text); }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #2a2a2a; color: white; padding: 10px 20px; border-radius: 24px; font-size: 13px; font-family: inherit; box-shadow: 0 4px 16px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.3s, transform 0.3s; pointer-events: none; z-index: 1000; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+  .toast.error { background: #b04040; }
+  .empty-archive { text-align: center; padding: 40px 20px; color: var(--muted); font-style: italic; background: var(--card); border-radius: 12px; box-shadow: var(--shadow); }
+  .month-selector { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .month-tab { padding: 6px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 13px; box-shadow: var(--shadow); }
+  .month-tab.active { background: var(--text); color: white; border-color: var(--text); }
+  .archive-row { background: var(--card); border-radius: 10px; margin-bottom: 8px; box-shadow: var(--shadow); border-left: 4px solid #b0a8a0; overflow: hidden; }
+  .archive-row-header { display: flex; align-items: center; padding: 12px 16px; cursor: pointer; gap: 12px; user-select: none; }
+  .archive-row-header:hover { background: rgba(0,0,0,0.02); }
+  .archive-date { font-weight: bold; font-size: 15px; min-width: 60px; }
+  .archive-day-name { font-size: 14px; color: var(--muted); min-width: 110px; }
+  .archive-progress { flex: 1; font-size: 13px; color: var(--muted); }
+  .archive-percent { font-size: 13px; font-weight: bold; min-width: 44px; text-align: right; }
+  .archive-chevron { font-size: 12px; color: var(--muted); transition: transform 0.2s; }
+  .archive-row.open .archive-chevron { transform: rotate(90deg); }
+  .archive-row-body { display: none; padding: 0 16px 14px 16px; border-top: 1px dashed var(--border); }
+  .archive-row.open .archive-row-body { display: block; }
+  .archive-row-body .task-block { padding: 6px 0; }
+  .archive-row-body .task input[type="checkbox"] { cursor: default; }
+  .archive-restore-btn { margin-top: 10px; padding: 5px 12px; border-radius: 14px; border: 1px solid var(--border); background: transparent; cursor: pointer; font-size: 12px; font-family: inherit; color: var(--muted); }
+  .archive-restore-btn:hover { border-color: #b04040; color: #b04040; }
+  .health-panel { background: var(--card); border-radius: 12px; padding: 24px; box-shadow: var(--shadow); border-left: 4px solid #a4c8b8; margin-bottom: 16px; }
+  .health-section { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px dashed var(--border); }
+  .health-section:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+  .health-title { font-size: 16px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; }
+  .health-days { display: flex; gap: 10px; flex-wrap: wrap; }
+  .health-day { flex: 1; min-width: 90px; padding: 14px; border-radius: 10px; background: #f0ece6; border: 1.5px solid transparent; cursor: pointer; text-align: center; font-size: 18px; user-select: none; }
+  .health-day:hover { border-color: #c8d8cc; }
+  .health-day.done { background: var(--done); border-color: #9c9; color: #4a7a4a; }
+  .health-day-label { font-size: 11px; color: var(--muted); display: block; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .health-day.done .health-day-label { color: #6a8a6a; }
+  .water-glasses { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .water-glass { width: 40px; height: 50px; border: 2px solid #a4b8c8; border-radius: 4px 4px 8px 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #a4b8c8; transition: all 0.15s; background: rgba(164, 184, 200, 0.08); }
+  .water-glass:hover { border-color: #6a8aa8; }
+  .water-glass.done { background: linear-gradient(180deg, #d8e8f8 0%, #a4c8e8 100%); border-color: #6a8aa8; color: white; }
+  .water-count { font-size: 14px; color: var(--muted); margin-top: 6px; }
+  .water-count b { color: var(--text); font-size: 16px; }
+  .vitamins-list { display: flex; flex-direction: column; gap: 10px; }
+  .vitamin-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: rgba(164, 200, 184, 0.12); border-radius: 8px; cursor: pointer; user-select: none; }
+  .vitamin-row:hover { background: rgba(164, 200, 184, 0.2); }
+  .vitamin-row.done { background: var(--done); }
+  .vitamin-row input[type="checkbox"] { appearance: none; width: 20px; height: 20px; border: 1.5px solid #ccc; border-radius: 5px; cursor: pointer; position: relative; background: white; }
+  .vitamin-row input[type="checkbox"]:checked { background: #9c9; border-color: #6a8a6a; }
+  .vitamin-row input[type="checkbox"]:checked::after { content: "✓"; position: absolute; top: -2px; left: 3px; color: white; font-size: 15px; font-weight: bold; }
+  .vitamin-label { flex: 1; font-size: 14px; }
+  .vitamin-time { font-size: 12px; color: var(--muted); margin-right: 8px; }
+  .vitamin-row.done .vitamin-label { text-decoration: line-through; color: var(--muted); }
+  .clean-panel { background: var(--card); border-radius: 12px; padding: 24px; box-shadow: var(--shadow); border-left: 4px solid #c8b8a0; }
+  .clean-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+  .clean-title { font-size: 18px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  .clean-dacha-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--card); cursor: pointer; font-family: inherit; font-size: 13px; color: var(--muted); }
+  .clean-dacha-btn:hover { border-color: var(--accent); color: var(--text); }
+  .clean-dacha-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .clean-day { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: rgba(200, 184, 160, 0.12); border-radius: 8px; margin-bottom: 8px; cursor: pointer; user-select: none; }
+  .clean-day:hover { background: rgba(200, 184, 160, 0.22); }
+  .clean-day.done { background: var(--done); }
+  .clean-day input[type="checkbox"] { appearance: none; width: 22px; height: 22px; border: 1.5px solid #ccc; border-radius: 5px; cursor: pointer; position: relative; background: white; }
+  .clean-day input[type="checkbox"]:checked { background: #9c9; border-color: #6a8a6a; }
+  .clean-day input[type="checkbox"]:checked::after { content: "✓"; position: absolute; top: -2px; left: 3px; color: white; font-size: 16px; font-weight: bold; }
+  .clean-day-name { font-weight: bold; min-width: 100px; }
+  .clean-day-zone { flex: 1; font-size: 14px; color: var(--text); }
+  .clean-day.done .clean-day-zone, .clean-day.done .clean-day-name { text-decoration: line-through; color: var(--muted); }
+  .clean-dacha-note { font-size: 13px; color: var(--muted); font-style: italic; padding: 10px; background: rgba(200, 184, 160, 0.15); border-radius: 6px; margin-top: 12px; }
+  .shop-panel { background: var(--card); border-radius: 12px; padding: 24px; box-shadow: var(--shadow); border-left: 4px solid #a4b8c8; }
+  .shop-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; padding-bottom: 16px; border-bottom: 1px dashed var(--border); }
+  .shop-title { font-size: 22px; color: var(--text); }
+  .shop-balance { display: flex; align-items: center; gap: 8px; font-size: 20px; color: #2a4a6a; }
+  .shop-item { padding: 18px; background: rgba(164, 184, 200, 0.12); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; }
+  .shop-item-name { font-size: 20px; color: var(--text); margin-bottom: 6px; }
+  .shop-item-desc { font-size: 14px; color: var(--muted); margin-bottom: 12px; }
+  .shop-item-price { font-size: 16px; color: #2a4a6a; margin-bottom: 10px; }
+  .shop-buy { padding: 8px 20px; border-radius: 8px; border: 1px solid #6a4a25; background: linear-gradient(180deg, #e8f0f8 0%, #c8d8e8 100%); cursor: pointer; font-family: inherit; font-size: 15px; color: #2a4a6a; }
+  .shop-buy:hover:not(:disabled) { background: linear-gradient(180deg, #d8e8f8 0%, #b8c8d8 100%); }
+  .shop-buy:disabled { opacity: 0.5; cursor: not-allowed; }
+  .shop-used { padding: 12px 16px; background: rgba(200, 164, 164, 0.15); border-left: 3px solid #c8a4a4; border-radius: 6px; font-size: 14px; color: #7a5a3a; font-style: italic; }
+  .shop-note { font-size: 13px; color: var(--muted); margin-top: 16px; line-height: 1.7; }
+  .shop-note b { color: var(--text); }
+  .shop-limit { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .date-selector { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .date-tab { padding: 6px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 12px; box-shadow: var(--shadow); }
+  .date-tab.active { background: var(--text); color: white; border-color: var(--text); }
+  .date-tab.today { border-color: var(--accent); border-width: 2px; }
+
+  /* ФИНАНСЫ */
+  .fin-panel { background: var(--card); border-radius: 12px; padding: 24px; box-shadow: var(--shadow); border-left: 4px solid #b8c8a4; margin-bottom: 16px; }
+  .fin-section { margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px dashed var(--border); }
+  .fin-section:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+  .fin-title { font-size: 18px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 14px; }
+  .fin-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .fin-row label { min-width: 130px; font-size: 14px; color: var(--text); }
+  .fin-row input, .fin-row select { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); font-family: inherit; font-size: 14px; background: rgba(255,255,255,0.8); color: inherit; flex: 1; min-width: 120px; }
+  .fin-btn { padding: 8px 18px; border-radius: 8px; border: 1px solid #6a4a25; background: linear-gradient(180deg, #e8f0d8 0%, #c8d8b8 100%); cursor: pointer; font-family: inherit; font-size: 14px; color: #3a5a2a; }
+  .fin-btn:hover { background: linear-gradient(180deg, #d8e8c8 0%, #b8c8a8 100%); }
+  .fin-list { margin-top: 16px; }
+  .fin-item { display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px dashed var(--border); font-size: 14px; gap: 10px; }
+  .fin-item .date { color: var(--muted); font-size: 12px; margin-right: 8px; }
+  .fin-item .amount { font-weight: bold; white-space: nowrap; }
+  .fin-item .amount.minus { color: #b04040; }
+  .fin-item .amount.plus { color: #4a7a4a; }
+  .fin-item .cat { font-size: 12px; color: #6a4a25; margin-left: 6px; }
+  .fin-totals { padding: 16px; background: rgba(184, 200, 164, 0.15); border-left: 3px solid #b8c8a4; border-radius: 6px; font-size: 14px; line-height: 2; }
+  .fin-totals b { color: var(--text); font-size: 16px; }
+  .fin-delete { background: transparent; border: none; cursor: pointer; color: var(--muted); font-size: 14px; padding: 0 4px; }
+  .fin-delete:hover { color: #b04040; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div style="display:flex;align-items:center;flex-wrap:wrap;">
+    <h1 style="margin-right: 12px;">Мой ежедневник</h1>
+    <div class="diamond-panel" onclick="setMainTab('shop')" title="Открыть магазин">
+      <span class="diamond-icon">💎</span>
+      <span id="diamondBalance">0</span>
+    </div>
+  </div>
+  <label class="upload-label">📷 Своя картинка<input type="file" accept="image/*" style="display:none" onchange="uploadBg(event)"></label>
+</div>
+<p class="subtitle">Академ 2026–2027 · долги, творчество, жизнь</p>
+
+<div class="main-tabs">
+  <div class="main-tab active" data-main="days" onclick="setMainTab('days')">📅 По дням</div>
+  <div class="main-tab" data-main="health" onclick="setMainTab('health')">💚 Здоровье</div>
+  <div class="main-tab" data-main="clean" onclick="setMainTab('clean')">🧹 Уборка</div>
+  <div class="main-tab" data-main="menu" onclick="setMainTab('menu')">🍽 Меню</div>
+  <div class="main-tab" data-main="goals" onclick="setMainTab('goals')">🎯 Цели</div>
+  <div class="main-tab" data-main="finance" onclick="setMainTab('finance')">💰 Финансы</div>
+  <div class="main-tab" data-main="archive" onclick="setMainTab('archive')">📦 Архив</div>
+</div>
+
+<div class="summary">
+  <div><div class="label">Выполнено</div><div class="big" id="totalDone">0</div></div>
+  <div><div class="label">Из</div><div class="big" id="totalAll">0</div></div>
+  <div><div class="label">Прогресс</div><div class="big" id="totalPercent">0%</div></div>
+  <div class="top-buttons">
+    <button class="small" onclick="exportData()">Экспорт</button>
+    <label class="small-btn">Импорт<input type="file" accept=".json" style="display:none" onchange="importData(event)"></label>
+  </div>
+</div>
+
+<div class="tabs" id="tabs"></div>
+<div id="content"></div>
+<button class="add-card-btn" id="addCardBtn" onclick="addCard()" style="display:none;">+ Добавить карточку</button>
+<div class="toast" id="toast"></div>
+<script>
+const STORAGE_KEY = 'daily_progress_v16';
+const BG_KEY = 'daily_bg_v2';
+
+const FIN_CATEGORIES = ['Еда','Кафе/доставка','Транспорт','Дом','Здоровье и уход','Учёба','Творчество','Развлечения','Кредитка','Кредитка Дани','Помощь Дане','Копилка (Сочи)','Резерв','Прочее'];
+
+const DEFAULT_SUBJECTS = [
+  { id:'graphics', name:'Графика в дизайне', meta:'Настольная игра', cls:'graphics', tasks:['Отрисовать поле с нуля','Отрисовать 21 карточку','Отрисовать дизайн коробки','Распечатать все компоненты','Собрать коробку и разложить комплектующие'] },
+  { id:'drawing', name:'Рисунок', meta:'Голова + натюрморт', cls:'drawing', tasks:['Доделать первый разворот головы','Начать второй разворот головы','Натянуть планшет под натюрморт','Загрунтовать планшет','Нарисовать натюрморт'] },
+  { id:'composition', name:'Композиция', meta:'Книга', cls:'composition', tasks:['Выбрать произведение','Нарисовать 10 иллюстраций','Нарисовать иллюстрацию для обложки','Сверстать книгу','Распечатать книгу','Собрать книгу'] },
+  { id:'painting', name:'Живопись', meta:'8 портретов', cls:'painting', tasks:['Сделать 8 эскизов портретов','Портрет №1','Портрет №2','Портрет №3','Портрет №4','Портрет №5','Портрет №6','Портрет №7','Портрет №8'] },
+  { id:'practice', name:'Практика', meta:'Архитектурная отмывка', cls:'practice', tasks:['Выбрать здание для отмывки','Сделать чертёж','Выполнить отмывку','Оформить и сдать'] },
+  { id:'creative', name:'Творчество', meta:'Стримы, тикток', cls:'creative', tasks:['Оформить Twitch-канал','Оформить TikTok-аккаунт','Тестовая запись (10 мин)','Первый стрим или видео'] },
+  { id:'life', name:'Жизнь и быт', meta:'Финансы, дом, Даня', cls:'life', tasks:['Разобрать финансы (кредитки)','Помочь Дане закрыть кредитку до 02.11','Отложить первые деньги на Сочи','Аэропорт — встреча подруги','Поменять паспорт (до 22.10): фото, заявление, забрать'] }
+];
+
+const DEFAULT_DAYS = [
+  { id:'mon', name:'Понедельник', short:'пн', meal:'', tasks:[] },
+  { id:'tue', name:'Вторник', short:'вт', meal:'', tasks:[] },
+  { id:'wed', name:'Среда', short:'ср', meal:'', tasks:[] },
+  { id:'thu', name:'Четверг', short:'чт', meal:'', tasks:[] },
+  { id:'fri', name:'Пятница', short:'пт', meal:'', tasks:[] },
+  { id:'sat', name:'Суббота', short:'сб', meal:'', tasks:[] },
+  { id:'sun', name:'Воскресенье', short:'вс', meal:'', tasks:[] }
+];
+
+const DEFAULT_MEAL_PLAN = {
+  week: '05.10 – 11.10',
+  days: [
+    { day:'Пн', breakfast:'Овсянка с бананом', lunch:'Суп куриный с вермишелью', lunchBatch:'на 3 дня', dinner:'Гречка + куриное филе + тушёные овощи' },
+    { day:'Вт', breakfast:'Творог + мёд + орехи', lunch:'Суп куриный', lunchBatch:'остался', dinner:'Паста с тушёной индейкой', dinnerBatch:'на 2 дня' },
+    { day:'Ср', breakfast:'Яичница + овощи', lunch:'Суп куриный', lunchBatch:'последний', dinner:'Паста с индейкой', dinnerBatch:'осталась' },
+    { day:'Чт', breakfast:'Овсянка с яблоком', lunch:'Плов с курицей', lunchBatch:'на 2 дня', dinner:'Салат + яйцо + сыр' },
+    { day:'Пт', breakfast:'Творог + ягоды', lunch:'Плов', lunchBatch:'остался', dinner:'Запечённый минтай + картофель' },
+    { day:'Сб', breakfast:'Сырники', breakfastBatch:'на 2 дня', lunch:'Щи из свежей капусты', lunchBatch:'на 3 дня', dinner:'Сырники + сметана', dinnerBatch:'остались' },
+    { day:'Вс', breakfast:'Омлет с сыром', lunch:'Щи', lunchBatch:'остались', dinner:'Запечённая курица с овощами', dinnerBatch:'на 2 дня' }
+  ],
+  shopping: 'Курица (филе + бёдра) 1,5 кг · индейка 500 г · минтай 500 г · яйца 20 шт · творог 1 кг · молоко 1 л · овсянка, гречка, рис, паста, вермишель · капуста, морковь, лук, картофель, помидоры, огурцы · бананы, яблоки, ягоды · мёд, орехи, сыр, сметана, масло · хлеб'
+};
+
+const DEFAULT_CLEAN = {
+  zones: {
+    kitchen: { name: 'Кухня', doneAt: null },
+    bathroom: { name: 'Ванная', doneAt: null },
+    hallway: { name: 'Прихожая', doneAt: null },
+    room: { name: 'Основная комната', doneAt: null },
+    vacuum: { name: 'Пылесос + мытьё полов', doneAt: null },
+    dust: { name: 'Протереть пыль', doneAt: null }
+  },
+  weekStart: null,
+  dachaMode: false,
+  bonusGiven: false
+};
+
+const DEFAULT_FINANCE = {
+  incomes: [
+    { id: 'inc_1', date: '2026-10-05', source: 'ЗП', amount: 30000, distribution: { credit: 5000, life: 12000, sochi: 5000, reserve: 3000, other: 5000 } }
+  ],
+  expenses: []
+};
+
+function loadState() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (raw && raw.subjects) {
+      if (!raw.days) raw.days = JSON.parse(JSON.stringify(DEFAULT_DAYS));
+      if (!raw.comments) raw.comments = {};
+      if (!raw.done) raw.done = {};
+      if (!raw.archive) raw.archive = [];
+      if (!raw.mealPlan) raw.mealPlan = JSON.parse(JSON.stringify(DEFAULT_MEAL_PLAN));
+      if (typeof raw.diamonds !== 'number') raw.diamonds = 0;
+      if (!raw.shop) raw.shop = { purchasesThisWeek: 0, lastResetWeek: null };
+      if (!raw.completedCards) raw.completedCards = {};
+      if (!raw.clean || !raw.clean.zones) raw.clean = JSON.parse(JSON.stringify(DEFAULT_CLEAN));
+      if (!raw.healthByDate) raw.healthByDate = {};
+      if (!raw.diamondLog) raw.diamondLog = [];
+      if (!raw.finance) raw.finance = JSON.parse(JSON.stringify(DEFAULT_FINANCE));
+      return raw;
+    }
+  } catch(e) {}
+  return {
+    subjects: JSON.parse(JSON.stringify(DEFAULT_SUBJECTS)),
+    days: JSON.parse(JSON.stringify(DEFAULT_DAYS)),
+    done: {}, comments: {}, archive: [],
+    mealPlan: JSON.parse(JSON.stringify(DEFAULT_MEAL_PLAN)),
+    diamonds: 0,
+    shop: { purchasesThisWeek: 0, lastResetWeek: null },
+    completedCards: {},
+    clean: JSON.parse(JSON.stringify(DEFAULT_CLEAN)),
+    healthByDate: {},
+    diamondLog: [],
+    finance: JSON.parse(JSON.stringify(DEFAULT_FINANCE))
+  };
+}
+function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+let state = loadState();
+let activeMain = 'days';
+let activeTab = 'all';
+let healthViewDate = null;
+
+function uid() { return 'c' + Date.now() + Math.random().toString(36).slice(2,6); }
+function taskKey(a,b){ return a+'::'+b; }
+function isDone(a,b){ return !!state.done[taskKey(a,b)]; }
+function getComment(a,b){ return state.comments[taskKey(a,b)] || ''; }
+function getCardById(id){ return state.subjects.find(s=>s.id===id) || state.days.find(d=>d.id===id); }
+function cardProgress(c){ const done=c.tasks.filter((_,i)=>isDone(c.id,i)).length; return {done,total:c.tasks.length}; }
+function totalProgress(){
+  let done=0,total=0;
+  state.subjects.forEach(s=>{const p=cardProgress(s);done+=p.done;total+=p.total;});
+  state.days.forEach(d=>{const p=cardProgress(d);done+=p.done;total+=p.total;});
+  return {done,total};
+}
+function renderSummary(){
+  const {done,total}=totalProgress();
+  const percent= total? Math.round(done/total*100):0;
+  document.getElementById('totalDone').textContent=done;
+  document.getElementById('totalAll').textContent=total;
+  document.getElementById('totalPercent').textContent=percent+'%';
+}
+function renderMainTabs(){
+  document.querySelectorAll('.main-tab').forEach(el=>{
+    el.classList.toggle('active', el.dataset.main===activeMain);
+  });
+}
+function setMainTab(name){
+  activeMain=name;
+  activeTab = 'all';
+  document.getElementById('addCardBtn').style.display = name==='goals'?'block':'none';
+  render();
+}
+function renderTabs(){
+  const el=document.getElementById('tabs');
+  let tabs;
+  if(activeMain==='goals'){
+    tabs=[{id:'all',name:'Все'}].concat(state.subjects.map(s=>({id:s.id,name:s.name})));
+  } else if (['archive','health','clean','menu','shop','finance'].includes(activeMain)) {
+    el.innerHTML = '';
+    return;
+  } else {
+    const todayIdx=new Date().getDay();
+    const todayId=['sun','mon','tue','wed','thu','fri','sat'][todayIdx];
+    tabs=state.days.map(d=>({id:d.id,name:d.short,fullName:d.name,isToday:d.id===todayId}));
+  }
+  el.innerHTML=tabs.map(t=>'<div class="tab '+(activeTab===t.id?'active':'')+' '+(t.isToday?'today':'')+'" title="'+(t.fullName||t.name)+'" onclick="setTab(\''+t.id+'\')">'+t.name+'</div>').join('');
+}
+function setTab(id){ activeTab=id; render(); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function showToast(msg, isError){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.classList.toggle('error', !!isError);
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>el.classList.remove('show'), 2500);
+}
+function updateDiamondBalance() {
+  const el = document.getElementById('diamondBalance');
+  if (el) el.textContent = state.diamonds || 0;
+}
+function getWeekKey() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1 - day);
+  d.setDate(d.getDate() + diff);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function dateKey(d) {
+  const dt = d || new Date();
+  return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+}
+function logDiamonds(amount, reason, dateStr) {
+  if (!state.diamondLog) state.diamondLog = [];
+  state.diamondLog.push({ ts: Date.now(), amount: amount, reason: reason, balanceAfter: state.diamonds || 0, date: dateStr || dateKey() });
+  if (state.diamondLog.length > 1000) state.diamondLog = state.diamondLog.slice(-1000);
+}
+function addDiamonds(n, msg, reason, dateStr) {
+  const before = state.diamonds || 0;
+  state.diamonds = Math.max(0, before + n);
+  const actual = (state.diamonds || 0) - before;
+  if (actual !== 0 || n !== 0) logDiamonds(actual, reason || msg || (n > 0 ? '+' + n : n + ''), dateStr);
+  saveState();
+  if (msg) showToast(msg, n < 0);
+  updateDiamondBalance();
+}
+function getHealth(dateStr) {
+  if (!state.healthByDate) state.healthByDate = {};
+  if (!state.healthByDate[dateStr]) {
+    state.healthByDate[dateStr] = { water: 0, vitamins: {}, training: false, sleep: null, applied: null };
+  }
+  return state.healthByDate[dateStr];
+}
+</script>
+<script>
+function renderCard(card, cls, metaOverride){
+  const p=cardProgress(card);
+  const percent= p.total? Math.round(p.done/p.total*100):0;
+  const tasksHtml=card.tasks.map((t,i)=>{
+    const done=isDone(card.id,i);
+    const comment=getComment(card.id,i);
+    const hasComment= comment && comment.trim().length>0;
+    const commentBlock = hasComment ? '<div class="comment-display">'+escapeHtml(comment)+'</div>' : '';
+    const editorBlock = '<div class="comment-editor" id="comment-editor-'+card.id+'-'+i+'"><textarea placeholder="Детали, заметки...">'+escapeHtml(comment)+'</textarea><div class="comment-controls"><button class="save" onclick="saveComment(\''+card.id+'\','+i+',this)">Сохранить</button><button onclick="hideComment(\''+card.id+'\','+i+')">Отмена</button></div></div>';
+    return '<div class="task-block" data-key="'+card.id+'::'+i+'"><div class="task '+(done?'done':'')+'"><input type="checkbox" '+(done?'checked':'')+' onchange="toggle(\''+card.id+'\','+i+')"><span class="task-text">'+escapeHtml(t)+'</span><div class="task-actions"><button class="task-btn '+(hasComment?'has-comment':'')+'" onclick="event.preventDefault();showCommentEditor(\''+card.id+'\','+i+')">💬</button><button class="task-btn" onclick="event.preventDefault();deleteTask(\''+card.id+'\','+i+')">×</button></div></div>'+commentBlock+editorBlock+'</div>';
+  }).join('');
+  const isDay = !!state.days.find(d=>d.id===card.id);
+  const finishBtn = isDay ? '<button class="card-finish" onclick="finishDay(\''+card.id+'\')">Завершить</button>' : '';
+
+  const mealBlock = card.meal ? '<div style="margin-top:14px;padding:10px 14px;background:rgba(200,184,160,0.18);border-left:2px solid #c8b8a0;border-radius:6px;font-size:13px;font-style:italic;color:#5a5a5a;">🍽 ' + escapeHtml(card.meal) + '</div>' : '';
+
+  const trainBlock = (() => {
+    if (!['wed','fri','sun'].includes(card.id)) return '';
+    return '<div style="margin-top:10px;padding:10px 14px;background:rgba(164,200,184,0.12);border-left:2px solid #a4c8b8;border-radius:6px;font-size:13px;color:#4a5a4a;">💪 Тренировка: ВК</div>';
+  })();
+
+  const cleanBlock = (() => {
+    const c = state.clean;
+    if (!c || !c.zones) return '';
+    const notDone = Object.keys(c.zones).filter(k => !c.zones[k].doneAt);
+    if (notDone.length === 0) return '<div style="margin-top:10px;padding:10px 14px;background:rgba(164,200,184,0.18);border-left:2px solid #a4c8b8;border-radius:6px;font-size:13px;color:#4a5a4a;">🧹 Все зоны убраны на этой неделе 🎉</div>';
+    const names = notDone.map(k => c.zones[k].name).join(', ');
+    return '<div style="margin-top:10px;padding:10px 14px;background:rgba(200,184,160,0.12);border-left:2px solid #c8b8a0;border-radius:6px;font-size:13px;color:#5a5a5a;">🧹 Осталось убрать: ' + escapeHtml(names) + '</div>';
+  })();
+
+  return '<div class="card '+cls+'"><button class="card-delete" onclick="deleteCard(\''+card.id+'\')">×</button>'+finishBtn+'<h2>'+escapeHtml(card.name)+'</h2><div class="meta">'+escapeHtml(metaOverride||card.meta||'')+' · '+p.done+'/'+p.total+' · '+percent+'%</div><div class="progress-wrap"><div class="progress-bar" style="width:'+percent+'%"></div></div>'+tasksHtml+mealBlock+trainBlock+cleanBlock+'<div class="add-task"><input type="text" placeholder="Новая задача..." onkeydown="if(event.key===\'Enter\')addTask(\''+card.id+'\',this)"><button onclick="addTaskFromBtn(\''+card.id+'\',this)">+</button></div></div>';
+}
+
+function toggle(a,b){
+  const k=taskKey(a,b);
+  const was = !!state.done[k];
+  state.done[k] = !was;
+  const isGoalCard = state.subjects.some(s => s.id === a);
+  if (isGoalCard) {
+    const card = state.subjects.find(s => s.id === a);
+    if (!was && state.done[k]) addDiamonds(5, '+5 💎', 'Задача в цели: ' + (card ? card.name : a));
+    else if (was && !state.done[k]) addDiamonds(-5, '-5 💎', 'Снята задача: ' + (card ? card.name : a));
+    checkCardCompletion(a);
+  }
+  saveState(); render();
+}
+function checkCardCompletion(cardId) {
+  const card = state.subjects.find(s => s.id === cardId);
+  if (!card) return;
+  const allDone = card.tasks.length > 0 && card.tasks.every((_, i) => isDone(cardId, i));
+  const alreadyBonus = state.completedCards && state.completedCards[cardId];
+  if (allDone && !alreadyBonus) {
+    addDiamonds(25, '🎉 Карточка закрыта! +25 💎', 'Бонус: ' + card.name);
+    state.completedCards = state.completedCards || {};
+    state.completedCards[cardId] = true;
+  } else if (!allDone && alreadyBonus) {
+    addDiamonds(-25, '-25 💎', 'Снят бонус: ' + card.name);
+    delete state.completedCards[cardId];
+  }
+  saveState();
+}
+
+/* ============ ЗДОРОВЬЕ ============ */
+
+function renderHealth(){
+  const el = document.getElementById('content');
+  const today = new Date();
+  const todayStr = dateKey(today);
+  if (!healthViewDate) healthViewDate = todayStr;
+
+  const dates = [];
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    dates.push(d);
+  }
+  const dateTabs = dates.map(d => {
+    const ds = dateKey(d);
+    const isToday = ds === todayStr;
+    const dayNames = ['вс','пн','вт','ср','чт','пт','сб'];
+    const label = String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + ' ' + dayNames[d.getDay()];
+    return '<div class="date-tab '+(healthViewDate===ds?'active':'')+' '+(isToday?'today':'')+'" onclick="setHealthDate(\''+ds+'\')">'+label+'</div>';
+  }).join('');
+
+  const h = getHealth(healthViewDate);
+  const dayOfWeek = new Date(healthViewDate + 'T12:00:00').getDay();
+  const dayId = ['sun','mon','tue','wed','thu','fri','sat'][dayOfWeek];
+  const isTrainingDay = ['wed','fri','sun'].includes(dayId);
+  const isWeekendDay = ['sat','sun'].includes(dayId);
+
+  let trainingHtml;
+  if (isTrainingDay) {
+    const done = !!h.training;
+    trainingHtml = '<div class="health-day '+(done?'done':'')+'" onclick="toggleTrainingDate()" style="max-width:120px;"><span class="health-day-label">'+dayId+'</span>'+(done?'✓':'—')+'</div>';
+  } else {
+    const trainingDays = [3, 5, 0];
+    const todayD = new Date(healthViewDate + 'T12:00:00');
+    const todayDow = todayD.getDay();
+    let daysAhead = 0;
+    for (let i = 1; i <= 7; i++) {
+      const check = (todayDow + i) % 7;
+      if (trainingDays.includes(check)) { daysAhead = i; break; }
+    }
+    const nextDate = new Date(todayD);
+    nextDate.setDate(nextDate.getDate() + daysAhead);
+    const nextStr = String(nextDate.getDate()).padStart(2,'0') + '.' + String(nextDate.getMonth()+1).padStart(2,'0');
+    const label = daysAhead === 1 ? 'завтра' : nextStr;
+    trainingHtml = '<div style="font-size:13px;color:var(--muted);font-style:italic;">Сегодня не тренировочный день. Ближайшая тренировка: '+label+' — Тренировка ВК.</div>';
+  }
+
+  const waterHtml = Array.from({length: 5}, (_, i) =>
+    '<div class="water-glass '+(i < h.water ? 'done' : '')+'" onclick="setWaterDate('+(i+1)+')">💧</div>'
+  ).join('');
+
+  const vitaminSlots = [
+    { id:'morning', label:'Утро', sub:'Омега-3, C, D3' },
+    { id:'noon', label:'Обед', sub:'Омега-3, D3, B12' },
+    { id:'evening', label:'Ужин', sub:'Омега-3, D3, Цинк' }
+  ];
+  const vitaminsHtml = vitaminSlots.map(v => {
+    const done = !!h.vitamins[v.id];
+    return '<label class="vitamin-row '+(done?'done':'')+'"><input type="checkbox" '+(done?'checked':'')+' onchange="toggleVitaminDate(\''+v.id+'\')"><span class="vitamin-time">'+v.label+'</span><span class="vitamin-label">'+v.sub+'</span></label>';
+  }).join('');
+
+  const nextDayMap2 = { 'sun':'mon', 'mon':'tue', 'tue':'wed', 'wed':'thu', 'thu':'fri', 'fri':'sat', 'sat':'sun' };
+  const nextDay2 = nextDayMap2[dayId];
+  const isOfficeTomorrow2 = ['mon','thu'].includes(nextDay2);
+  const isWeekendTomorrow2 = ['sat','sun'].includes(nextDay2);
+  let sleepLimit, sleepMax;
+  if (isWeekendTomorrow2) { sleepLimit = '01:00'; sleepMax = '01:30'; }
+  else if (isOfficeTomorrow2) { sleepLimit = '23:30'; sleepMax = '00:00'; }
+  else { sleepLimit = '00:00'; sleepMax = '00:30'; }
+
+  let sleepStatusHtml = '';
+  if (h.sleep && h.sleep.time) {
+    const status = h.sleep.status;
+    const color = status === 'good' ? '#4a7a4a' : (status === 'ok' ? '#8a7a3a' : '#b04040');
+    const label = status === 'good' ? '+10 💎' : (status === 'ok' ? '+5 💎' : '−5 💎');
+    sleepStatusHtml = '<div style="font-size:14px;color:'+color+';margin-top:8px;">✅ Отбой отмечен в '+h.sleep.time+' — '+label+'</div>';
+  } else {
+    sleepStatusHtml = '<div style="font-size:13px;color:var(--muted);margin-top:8px;font-style:italic;">Отбой ещё не отмечен.</div>';
+  }
+
+  let infoHtml = '';
+  if (h.applied && h.applied.closed) {
+    const net = (h.applied.diamonds || 0) - (h.applied.penalty || 0);
+    const sign = net > 0 ? '+' : '';
+    infoHtml = '<div style="margin-top:16px;padding:12px;background:rgba(164,200,184,0.15);border-left:3px solid #a4c8b8;border-radius:6px;font-size:13px;color:#4a5a4a;">✅ День закрыт. Начислено: <b>'+sign+h.applied.diamonds+' 💎</b>. Штрафы: −'+h.applied.penalty+' 💎. Итог: <b>'+sign+net+' 💎</b>.</div>';
+  } else {
+    infoHtml = '<div style="margin-top:16px;font-size:12px;color:var(--muted);font-style:italic;">День ещё не закрыт. Все начисления и штрафы будут применены, когда нажмёшь «Завершить» в карточке дня (раздел «По дням»).</div>';
+  }
+
+  const dateLabel = healthViewDate === todayStr ? 'Сегодня' : 'Просмотр: ' + healthViewDate;
+
+  el.innerHTML = '<div class="health-panel">'
+    +'<div class="date-selector">'+dateTabs+'</div>'
+    +'<div style="font-size:18px;margin-bottom:16px;color:var(--text);">'+dateLabel+'</div>'
+    +'<div class="health-section"><div class="health-title">Тренировка · +15 💎</div>'+trainingHtml+'</div>'
+    +'<div class="health-section"><div class="health-title">Вода · 1,5 л (5 стаканов) · +1 💎 за стакан</div><div class="water-glasses">'+waterHtml+'</div><div class="water-count">Отмечено: <b>'+h.water+' / 5</b>'+(h.water >= 5 ? ' ✅' : '')+'</div></div>'
+    +'<div class="health-section"><div class="health-title">Витамины · +1 💎 за приём</div><div class="vitamins-list">'+vitaminsHtml+'</div></div>'
+    +'<div class="health-section"><div class="health-title">Сон · до '+sleepLimit+' → +10 💎, до '+sleepMax+' → +5 💎</div>'
+      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">'
+        +'<input type="text" id="sleepInput" placeholder="ЧЧ:ММ" value="'+(h.sleep && h.sleep.time ? h.sleep.time : '')+'" style="width:100px;padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-family:inherit;font-size:15px;background:rgba(255,255,255,0.8);color:inherit;">'
+        +'<button class="shop-buy" onclick="setSleepTime(document.getElementById(\'sleepInput\').value)">Сохранить</button>'
+        +'<button class="shop-buy" onclick="markSleepNow()" style="font-size:13px;">🌙 Сейчас</button>'
+        +(h.sleep && h.sleep.time ? '<button class="shop-buy" onclick="clearSleep()" style="font-size:13px;background:linear-gradient(180deg,#f8e8e8 0%,#e8c8c8 100%);color:#7a3a3a;">✕ Убрать</button>' : '')
+      +'</div>'
+      +sleepStatusHtml
+    +'</div>'
+    +infoHtml
+  +'</div>';
+}
+
+function setHealthDate(ds) { healthViewDate = ds; renderHealth(); }
+function getCurrentDayId() {
+  const d = new Date(healthViewDate + 'T12:00:00');
+  return ['sun','mon','tue','wed','thu','fri','sat'][d.getDay()];
+}
+function toggleTrainingDate() {
+  const h = getHealth(healthViewDate);
+  h.training = !h.training;
+  saveState();
+  renderHealth();
+}
+function setWaterDate(n) {
+  const h = getHealth(healthViewDate);
+  h.water = (n === h.water) ? 0 : n;
+  saveState();
+  renderHealth();
+}
+function toggleVitaminDate(slot) {
+  const h = getHealth(healthViewDate);
+  h.vitamins[slot] = !h.vitamins[slot];
+  saveState();
+  renderHealth();
+}
+function markSleepNow() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  setSleepTime(hh + ':' + mm);
+}
+function setSleepTime(timeStr) {
+  if (!/^\d{1,2}:\d{2}$/.test(timeStr)) { showToast('Введи время в формате ЧЧ:ММ', true); return; }
+  const [hhStr, mmStr] = timeStr.split(':');
+  const hh = parseInt(hhStr, 10);
+  const mm = parseInt(mmStr, 10);
+  if (isNaN(hh) || isNaN(mm) || hh < 0 || hh > 23 || mm < 0 || mm > 59) { showToast('Некорректное время', true); return; }
+  const h = getHealth(healthViewDate);
+  const dayId = getCurrentDayId();
+  const nextDayMap = { 'sun':'mon', 'mon':'tue', 'tue':'wed', 'wed':'thu', 'thu':'fri', 'fri':'sat', 'sat':'sun' };
+  const nextDay = nextDayMap[dayId];
+  const isOfficeTomorrow = ['mon','thu'].includes(nextDay);
+  const isWeekendTomorrow = ['sat','sun'].includes(nextDay);
+
+  let totalMin = hh * 60 + mm;
+  if (totalMin < 300) totalMin += 1440;
+
+  let status = 'bad';
+  if (isWeekendTomorrow) {
+    if (totalMin >= 1380 && totalMin <= 1500) status = 'good';
+    else if (totalMin > 1500 && totalMin <= 1530) status = 'ok';
+    else status = 'bad';
+  } else if (isOfficeTomorrow) {
+    if (totalMin >= 1320 && totalMin <= 1410) status = 'good';
+    else if (totalMin > 1410 && totalMin <= 1440) status = 'ok';
+    else status = 'bad';
+  } else {
+    if (totalMin >= 1320 && totalMin <= 1440) status = 'good';
+    else if (totalMin > 1440 && totalMin <= 1470) status = 'ok';
+    else status = 'bad';
+  }
+  h.sleep = { time: timeStr, status: status };
+  saveState();
+  renderHealth();
+  showToast('Отбой: ' + timeStr);
+}
+function clearSleep() {
+  const h = getHealth(healthViewDate);
+  h.sleep = null;
+  saveState();
+  renderHealth();
+  showToast('Отбой снят');
+}
+
+/* ============ УБОРКА ============ */
+
+function renderClean(){
+  const el = document.getElementById('content');
+  if (!state.clean.zones) {
+    state.clean = JSON.parse(JSON.stringify(DEFAULT_CLEAN));
+    saveState();
+  }
+  const c = state.clean;
+  const thisWeek = getWeekKey();
+  if (c.weekStart !== thisWeek) {
+    Object.keys(c.zones).forEach(k => { c.zones[k].doneAt = null; });
+    c.weekStart = thisWeek;
+    c.bonusGiven = false;
+    saveState();
+  }
+
+  const zoneKeys = ['kitchen','bathroom','hallway','room','vacuum','dust'];
+  const doneCount = zoneKeys.filter(k => c.zones[k].doneAt).length;
+  const allDone = doneCount === 6;
+
+  const zonesHtml = zoneKeys.map(k => {
+    const z = c.zones[k];
+    const done = !!z.doneAt;
+    let dateStr = '';
+    if (done) {
+      const parts = z.doneAt.split('-');
+      dateStr = parts[2] + '.' + parts[1];
+    }
+    return '<label class="clean-day '+(done?'done':'')+'"><input type="checkbox" '+(done?'checked':'')+' onchange="toggleCleanZone(\''+k+'\')"><span class="clean-day-name">'+z.name+'</span><span class="clean-day-zone">'+(done ? 'убрана ' + dateStr : 'не убрана')+'</span></label>';
+  }).join('');
+
+  el.innerHTML = '<div class="clean-panel">'
+    +'<div class="clean-header"><div class="clean-title">Уборка на неделю</div>'
+      +'<button class="clean-dacha-btn '+(c.dachaMode?'active':'')+'" onclick="toggleDacha()">'+(c.dachaMode ? '🏠 На даче' : '🏡 Уезжаем на дачу')+'</button>'
+    +'</div>'
+    +zonesHtml
+    +'<div style="margin-top:20px;font-size:16px;color:var(--text);"><b>Прогресс: '+doneCount+' / 6</b>'+(allDone ? ' 🎉 Все зоны убраны!' : '')+'</div>'
+    +'<div style="margin-top:20px;font-size:13px;color:var(--muted);line-height:1.7;">'
+      +'<b>Правила:</b><br>'
+      +'· Каждая зона — <b>+10 💎</b>, когда отмечаешь<br>'
+      +'· Все 6 зон за неделю — <b>бонус +20 💎</b><br>'
+      +'· Неделя начинается с понедельника, зоны обнуляются автоматически<br>'
+      +'· Нет штрафов — не отметила, значит не получила'
+    +'</div>'
+  +'</div>';
+}
+
+function toggleCleanZone(key) {
+  const c = state.clean;
+  if (!c.zones[key]) return;
+  const z = c.zones[key];
+  const wasDone = !!z.doneAt;
+  if (wasDone) {
+    z.doneAt = null;
+    addDiamonds(-10, '-10 💎', 'Снята уборка: ' + z.name);
+  } else {
+    z.doneAt = dateKey();
+    addDiamonds(10, '+10 💎 за уборку: ' + z.name, 'Уборка: ' + z.name);
+  }
+  const allDone = ['kitchen','bathroom','hallway','room','vacuum','dust'].every(k => c.zones[k].doneAt);
+  if (allDone && !c.bonusGiven) {
+    c.bonusGiven = true;
+    addDiamonds(20, '🎉 Все зоны убраны! +20 💎', 'Бонус: все зоны уборки');
+  } else if (!allDone && c.bonusGiven) {
+    c.bonusGiven = false;
+    addDiamonds(-20, '-20 💎', 'Снят бонус за все зоны');
+  }
+  saveState();
+  renderClean();
+}
+function toggleDacha() {
+  state.clean.dachaMode = !state.clean.dachaMode;
+  saveState();
+  renderClean();
+}
+
+/* ============ МАГАЗИН ============ */
+
+const SHOP_PRICE = 100;
+const SHOP_LIMIT = 2;
+
+function renderShop(){
+  const el = document.getElementById('content');
+  const balance = state.diamonds || 0;
+  const weekKey = getWeekKey();
+  if (!state.shop) state.shop = { purchasesThisWeek: 0, lastResetWeek: null };
+  if (state.shop.lastResetWeek !== weekKey) {
+    state.shop.purchasesThisWeek = 0;
+    state.shop.lastResetWeek = weekKey;
+    saveState();
+  }
+  const used = state.shop.purchasesThisWeek;
+  const canBuy = balance >= SHOP_PRICE && used < SHOP_LIMIT;
+
+  const itemHtml = (used >= SHOP_LIMIT)
+    ? '<div class="shop-used">✅ На этой неделе лимит исчерпан ('+SHOP_LIMIT+' из '+SHOP_LIMIT+'). Возвращайся в понедельник.</div>'
+    : '<div class="shop-item">'
+        +'<div class="shop-item-name">Разрешение на покупку</div>'
+        +'<div class="shop-item-desc">Вещь, которую ты давно хочешь, но жаба душит купить. Не еда, не транспорт, не бытовуха. Что-то для себя.</div>'
+        +'<div class="shop-item-price">Цена: '+SHOP_PRICE+' 💎</div>'
+        +'<div class="shop-limit">Использовано на этой неделе: '+used+' / '+SHOP_LIMIT+'</div>'
+        +'<div style="margin-top:12px;"><button class="shop-buy" '+(canBuy?'':'disabled')+' onclick="buyShop()">'
+          +(canBuy ? 'Купить за '+SHOP_PRICE+' 💎' : (balance < SHOP_PRICE ? 'Не хватает '+(SHOP_PRICE - balance)+' 💎' : 'Лимит исчерпан'))
+        +'</button></div>'
+      +'</div>';
+
+  const log = (state.diamondLog || []).slice().reverse().slice(0, 100);
+  const logHtml = log.length === 0
+    ? '<div class="empty-archive" style="padding:20px;">Пока нет записей</div>'
+    : log.map(entry => {
+        const d = new Date(entry.ts);
+        const dateStr = String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+        const sign = entry.amount > 0 ? '+' : '';
+        const color = entry.amount > 0 ? '#4a7a4a' : (entry.amount < 0 ? '#b04040' : 'var(--muted)');
+        return '<div style="display:flex;justify-content:space-between;padding:8px 12px;border-bottom:1px dashed var(--border);font-size:13px;gap:10px;">'
+          +'<div style="flex:1;"><span style="color:var(--muted);font-size:12px;margin-right:8px;">'+dateStr+'</span>'+escapeHtml(entry.reason)+'</div>'
+          +'<div style="color:'+color+';font-weight:bold;white-space:nowrap;">'+sign+entry.amount+' 💎</div>'
+        +'</div>';
+      }).join('');
+
+  el.innerHTML = '<div class="shop-panel">'
+    +'<div class="shop-header"><div class="shop-title">Магазин</div><div class="shop-balance"><span>💎</span><span>'+balance+'</span></div></div>'
+    +itemHtml
+    +'<div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border);">'
+      +'<div style="font-size:16px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;">История операций</div>'
+      +logHtml
+    +'</div>'
+    +'<div class="shop-note">'
+      +'<b>Как заработать алмазики:</b><br>'
+      +'· +5 💎 за задачу в целях · +25 💎 бонус за карточку<br>'
+      +'· +15 💎 за тренировку · +1 💎 за стакан воды (макс. 5)<br>'
+      +'· +1 💎 за приём витаминов · +10 💎 за сон вовремя<br>'
+      +'· +10 💎 за каждую зону уборки · +20 бонус за все 6<br><br>'
+      +'<b>Ограничения:</b> '+SHOP_LIMIT+' покупки в неделю.'
+    +'</div>'
+  +'</div>';
+}
+function buyShop() {
+  const balance = state.diamonds || 0;
+  const weekKey = getWeekKey();
+  if (!state.shop) state.shop = { purchasesThisWeek: 0, lastResetWeek: weekKey };
+  if (state.shop.lastResetWeek !== weekKey) {
+    state.shop.purchasesThisWeek = 0;
+    state.shop.lastResetWeek = weekKey;
+  }
+  if (balance < SHOP_PRICE || state.shop.purchasesThisWeek >= SHOP_LIMIT) return;
+  if (!confirm('Купить разрешение на покупку за '+SHOP_PRICE+' 💎? Использовано: '+state.shop.purchasesThisWeek+'/'+SHOP_LIMIT)) return;
+  addDiamonds(-SHOP_PRICE, '💎 Разрешение куплено!', 'Покупка: Разрешение на покупку');
+  state.shop.purchasesThisWeek += 1;
+  saveState();
+  render();
+}
+
+/* ============ ФИНАНСЫ ============ */
+
+function renderFinance(){
+  const el = document.getElementById('content');
+  const f = state.finance || { incomes: [], expenses: [] };
+
+  // === Поступления ===
+  const incomesHtml = f.incomes.length === 0
+    ? '<div style="font-size:13px;color:var(--muted);font-style:italic;">Пока нет поступлений</div>'
+    : f.incomes.map(inc => {
+        const d = inc.distribution || {};
+        const distLines = [
+          d.credit ? 'Кредитка: ' + d.credit + ' ₽' : '',
+          d.creditDan ? 'Кредитка Дани: ' + d.creditDan + ' ₽' : '',
+          d.life ? 'Жизнь: ' + d.life + ' ₽' : '',
+          d.sochi ? 'Сочи: ' + d.sochi + ' ₽' : '',
+          d.reserve ? 'Резерв: ' + d.reserve + ' ₽' : '',
+          d.other ? 'Прочее: ' + d.other + ' ₽' : ''
+        ].filter(Boolean).join(' · ');
+        const [y,m,day] = inc.date.split('-');
+        return '<div class="fin-item" style="flex-direction:column;align-items:flex-start;gap:4px;"><div style="display:flex;justify-content:space-between;width:100%;"><div><span class="date">'+day+'.'+m+'.'+y+'</span>'+escapeHtml(inc.source)+'</div><div class="amount plus">+'+inc.amount+' ₽</div></div><div style="font-size:12px;color:var(--muted);">'+distLines+'</div></div>';
+      }).join('');
+
+  // === Траты ===
+  const expensesHtml = f.expenses.length === 0
+    ? '<div style="font-size:13px;color:var(--muted);font-style:italic;">Пока нет трат</div>'
+    : f.expenses.slice().reverse().map(e => {
+        const [y,m,day] = e.date.split('-');
+        const src = e.source || 'main'; // старая запись без source — считаем основным
+        const srcLabel = src === 'credit' ? ' 💳' : '';
+        return '<div class="fin-item"><div><span class="date">'+day+'.'+m+'</span>'+escapeHtml(e.cat)+(e.comment ? ' — ' + escapeHtml(e.comment) : '')+srcLabel+'</div><div class="amount minus">−'+e.amount+' ₽ <button class="fin-delete" onclick="deleteExpense(\''+e.id+'\')">×</button></div></div>';
+      }).join('');
+
+  const catOptions = FIN_CATEGORIES.map(c => '<option value="'+c+'">'+c+'</option>').join('');
+
+  // === Итоги ===
+    const round2 = (n) => Math.round(n * 100) / 100;
+  const totalIncome = round2(f.incomes.reduce((s, i) => s + (i.amount || 0), 0));
+  const totalExpense = round2(f.expenses.reduce((s, e) => s + (e.amount || 0), 0));
+
+  const expensesMain = round2(f.expenses.filter(e => (e.source || 'main') === 'main' && e.cat !== 'Кредитка').reduce((s, e) => s + (e.amount || 0), 0));
+  const expensesCredit = round2(f.expenses.filter(e => e.source === 'credit').reduce((s, e) => s + (e.amount || 0), 0));
+  const creditPayments = round2(f.expenses.filter(e => e.cat === 'Кредитка').reduce((s, e) => s + (e.amount || 0), 0));
+
+  const balanceMain = round2(totalIncome - expensesMain - creditPayments);
+  const initialCreditDebt = (state.finance && state.finance.initialCreditDebt) ? state.finance.initialCreditDebt : 0;
+  const creditDebt = round2(Math.max(0, initialCreditDebt + expensesCredit - creditPayments));
+
+  // По категориям распределено
+  let totalCredit = 0, totalCreditDan = 0, totalLife = 0, totalSochi = 0, totalReserve = 0, totalOther = 0;
+  f.incomes.forEach(i => {
+    const d = i.distribution || {};
+    totalCredit += d.credit || 0;
+    totalCreditDan += d.creditDan || 0;
+    totalLife += d.life || 0;
+    totalSochi += d.sochi || 0;
+    totalReserve += d.reserve || 0;
+    totalOther += d.other || 0;
+  });
+
+  el.innerHTML = '<div class="fin-panel">'
+    +'<div class="fin-section">'
+      +'<div class="fin-title">💰 Поступления</div>'
+      +'<div class="fin-row"><label>Дата</label><input type="date" id="finIncDate" value="'+dateKey()+'"></div>'
+      +'<div class="fin-row"><label>Источник</label><input type="text" id="finIncSource" placeholder="ЗП, премия, кэшбэк"></div>'
+      +'<div class="fin-row"><label>Сумма, ₽</label><input type="number" id="finIncAmount" step="0.01" placeholder="30000"></div>'
+      +'<div class="fin-row"><label>Кредитка</label><input type="number" id="finIncCredit" step="0.01" placeholder="0"></div>'
+      +'<div class="fin-row"><label>Кредитка Дани</label><input type="number" id="finIncCreditDan" step="0.01" placeholder="0"></div>'
+      +'<div class="fin-row"><label>Жизнь</label><input type="number" id="finIncLife" step="0.01" placeholder="0"></div>'
+      +'<div class="fin-row"><label>Сочи</label><input type="number" id="finIncSochi" step="0.01" placeholder="0"></div>'
+      +'<div class="fin-row"><label>Резерв</label><input type="number" id="finIncReserve" step="0.01" placeholder="0"></div>'
+      +'<div class="fin-row"><label>Прочее</label><input type="number" id="finIncOther" step="0.01" placeholder="0"></div>'
+      +'<div class="fin-row"><button class="fin-btn" onclick="addIncome()">+ Добавить поступление</button></div>'
+      +'<div class="fin-list">'+incomesHtml+'</div>'
+    +'</div>'
+    +'<div class="fin-section">'
+      +'<div class="fin-title">💸 Траты</div>'
+      +'<div class="fin-row"><label>Дата</label><input type="date" id="finExpDate" value="'+dateKey()+'"></div>'
+      +'<div class="fin-row"><label>Категория</label><select id="finExpCat">'+catOptions+'</select></div>'
+      +'<div class="fin-row"><label>Сумма, ₽</label><input type="number" id="finExpAmount" step="0.01" placeholder="500"></div>'
+      +'<div class="fin-row"><label>Источник</label><select id="finExpSource"><option value="main">Основной счёт</option><option value="credit">Кредитка</option></select></div>'
+      +'<div class="fin-row"><label>Комментарий</label><input type="text" id="finExpComment" placeholder="продукты в Окей"></div>'
+      +'<div class="fin-row"><button class="fin-btn" onclick="addExpense()">+ Добавить трату</button></div>'
+      +'<div class="fin-list">'+expensesHtml+'</div>'
+    +'</div>'
+    +'<div class="fin-section">'
+      +'<div class="fin-title">📊 Итоги</div>'
+      +'<div class="fin-totals">'
+        +'<div>Поступило всего: <b>'+totalIncome+' ₽</b></div>'
+        +'<div>Потрачено с основного счёта: <b>'+expensesMain+' ₽</b></div>'
+        +'<div>Потрачено с кредитки: <b>'+expensesCredit+' ₽</b></div>'
+        +'<div>Платежи на кредитку: <b>'+creditPayments+' ₽</b></div>'
+        +'<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);">'
+          +'<div>💵 Баланс основного: <b style="color:'+(balanceMain >= 0 ? '#4a7a4a' : '#b04040')+';">'+balanceMain+' ₽</b></div>'
+                    +'<div>💳 Долг по кредитке: <b style="color:'+(creditDebt > 0 ? '#b04040' : '#4a7a4a')+';">'+creditDebt+' ₽</b></div>'
+          +'<div style="font-size:12px;color:var(--muted);margin-top:6px;">Начальный долг: '+initialCreditDebt+' ₽ · Траты с кредитки: '+expensesCredit+' ₽ · Платежи: '+creditPayments+' ₽ · <span onclick="editInitialDebt()" style="cursor:pointer;text-decoration:underline;">изменить</span></div>'
+        +'</div>'
+        +'<div style="margin-top:12px;font-size:13px;color:var(--muted);">Распределено из поступлений: Кредитка '+totalCredit+' ₽ · Кредитка Дани '+totalCreditDan+' ₽ · Жизнь '+totalLife+' ₽ · Сочи '+totalSochi+' ₽ · Резерв '+totalReserve+' ₽ · Прочее '+totalOther+' ₽</div>'
+      +'</div>'
+    +'</div>'
+  +'</div>';
+}
+function addIncome(){
+  const date = document.getElementById('finIncDate').value;
+  const source = document.getElementById('finIncSource').value.trim();
+  const amount = parseFloat(document.getElementById('finIncAmount').value) || 0;
+  if (!date || !amount) { showToast('Заполни дату и сумму', true); return; }
+  if (!state.finance) state.finance = { incomes: [], expenses: [] };
+  state.finance.incomes.push({
+    id: 'inc_' + Date.now(),
+    date: date,
+    source: source || 'Поступление',
+    amount: amount,
+    distribution: {
+      credit: parseFloat(document.getElementById('finIncCredit').value) || 0,
+      creditDan: parseFloat(document.getElementById('finIncCreditDan').value) || 0,
+      life: parseFloat(document.getElementById('finIncLife').value) || 0,
+      sochi: parseFloat(document.getElementById('finIncSochi').value) || 0,
+      reserve: parseFloat(document.getElementById('finIncReserve').value) || 0,
+      other: parseFloat(document.getElementById('finIncOther').value) || 0
+    }
+  });
+  saveState();
+  renderFinance();
+  showToast('Поступление добавлено');
+}
+
+function addExpense(){
+  const date = document.getElementById('finExpDate').value;
+  const cat = document.getElementById('finExpCat').value;
+  const amount = parseFloat(document.getElementById('finExpAmount').value) || 0;
+  const source = document.getElementById('finExpSource').value || 'main';
+  const comment = document.getElementById('finExpComment').value.trim();
+  if (!date || !amount) { showToast('Заполни дату и сумму', true); return; }
+  if (!state.finance) state.finance = { incomes: [], expenses: [] };
+  state.finance.expenses.push({
+    id: 'exp_' + Date.now(),
+    date: date,
+    cat: cat,
+    amount: amount,
+    source: source,
+    comment: comment
+  });
+  saveState();
+  renderFinance();
+  showToast('Трата добавлена');
+}
+
+function editInitialDebt() {
+  if (!state.finance) state.finance = { incomes: [], expenses: [] };
+  const current = state.finance.initialCreditDebt || 0;
+  const val = prompt('Начальный долг по кредитке на 05.10.2026 (можно с копейками, через точку):', String(current).replace('.', ','));
+  if (val === null) return;
+  // Заменяем запятую на точку
+  const normalized = val.replace(',', '.').trim();
+  const num = parseFloat(normalized);
+  if (isNaN(num) || num < 0) { showToast('Некорректная сумма: ' + val, true); return; }
+  state.finance.initialCreditDebt = Math.round(num * 100) / 100; // округляем до копеек
+  saveState();
+  renderFinance();
+  showToast('Начальный долг: ' + state.finance.initialCreditDebt + ' ₽');
+}
+
+function deleteExpense(id){
+  if (!confirm('Удалить эту трату?')) return;
+  state.finance.expenses = state.finance.expenses.filter(e => e.id !== id);
+  saveState();
+  renderFinance();
+}
+
+/* ============ МЕНЮ ============ */
+
+function renderMenu(){
+  const el=document.getElementById('content');
+  const plan = state.mealPlan;
+  if (!plan || !plan.days) { el.innerHTML = '<div class="empty-archive">Меню пока не задано.</div>'; return; }
+  const daysHtml = plan.days.map(d => {
+    const lb = d.lunchBatch ? '<span style="display:inline-block;font-size:11px;padding:1px 8px;border-radius:10px;background:rgba(200,164,164,0.18);color:#a07070;margin-left:6px;">'+escapeHtml(d.lunchBatch)+'</span>' : '';
+    const db = d.dinnerBatch ? '<span style="display:inline-block;font-size:11px;padding:1px 8px;border-radius:10px;background:rgba(200,164,164,0.18);color:#a07070;margin-left:6px;">'+escapeHtml(d.dinnerBatch)+'</span>' : '';
+    const bb = d.breakfastBatch ? '<span style="display:inline-block;font-size:11px;padding:1px 8px;border-radius:10px;background:rgba(200,164,164,0.18);color:#a07070;margin-left:6px;">'+escapeHtml(d.breakfastBatch)+'</span>' : '';
+    return '<div style="padding:12px 0;border-bottom:1px dashed var(--border);"><div style="font-weight:bold;font-size:15px;margin-bottom:6px;">'+escapeHtml(d.day)+'</div><div style="display:flex;gap:10px;font-size:14px;padding:2px 0;"><span style="min-width:70px;color:var(--muted);font-size:13px;">Завтрак:</span><span>'+escapeHtml(d.breakfast)+bb+'</span></div><div style="display:flex;gap:10px;font-size:14px;padding:2px 0;"><span style="min-width:70px;color:var(--muted);font-size:13px;">Обед:</span><span>'+escapeHtml(d.lunch)+lb+'</span></div><div style="display:flex;gap:10px;font-size:14px;padding:2px 0;"><span style="min-width:70px;color:var(--muted);font-size:13px;">Ужин:</span><span>'+escapeHtml(d.dinner)+db+'</span></div></div>';
+  }).join('');
+  el.innerHTML = '<div style="background:var(--card);border-radius:12px;padding:20px;box-shadow:var(--shadow);border-left:4px solid #c8b8a0;">'
+    +'<div style="font-size:16px;margin-bottom:14px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Меню на неделю '+escapeHtml(plan.week || '')+'</div>'
+    +daysHtml
+    +'<div style="margin-top:16px;font-size:13px;color:var(--muted);line-height:1.7;"><strong>Продукты на неделю:</strong> '+escapeHtml(plan.shopping || '')+'</div>'
+  +'</div>';
+}
+
+/* ============ АРХИВ ============ */
+
+function renderArchiveRow(entry, idx, openSet){
+  const p = { done: entry.tasks.filter(t => t.done).length, total: entry.tasks.length };
+  const percent = p.total ? Math.round(p.done/p.total*100) : 0;
+  const isOpen = openSet && openSet.has(entry.id);
+  const date = (entry.archivedAt || '').split(',')[0] || '';
+  const tasksHtml = entry.tasks.map(t => {
+    const cb = (t.comment && t.comment.trim()) ? '<div class="comment-display">'+escapeHtml(t.comment)+'</div>' : '';
+    return '<div class="task-block"><div class="task '+(t.done?'done':'')+'"><input type="checkbox" disabled '+(t.done?'checked':'')+'><span class="task-text">'+escapeHtml(t.text)+'</span></div>'+cb+'</div>';
+  }).join('');
+  return '<div class="archive-row '+(isOpen?'open':'')+'" data-id="'+entry.id+'"><div class="archive-row-header" onclick="toggleArchiveRow(\''+entry.id+'\')"><span class="archive-chevron">▶</span><span class="archive-date">'+escapeHtml(date)+'</span><span class="archive-day-name">'+escapeHtml(entry.name)+'</span><span class="archive-progress">'+p.done+' из '+p.total+'</span><span class="archive-percent">'+percent+'%</span></div><div class="archive-row-body">'+tasksHtml+'<button class="archive-restore-btn" onclick="event.stopPropagation(); restoreDay('+idx+')">Вернуть из архива</button></div></div>';
+}
+function renderArchiveMonth(){
+  if (!state.archive || state.archive.length === 0) return '<div class="empty-archive">Архив пуст. Заверши день — он появится здесь.</div>';
+  const byMonth = {};
+  state.archive.forEach((entry, idx) => {
+    const dateStr = entry.archivedAt || '';
+    let key = 'Без даты';
+    const m = dateStr.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+    if (m) key = m[2] + '.' + m[3];
+    if (!byMonth[key]) byMonth[key] = [];
+    byMonth[key].push({ entry, idx });
+  });
+  const months = Object.keys(byMonth).sort((a,b) => {
+    const [am, ay] = a.split('.').map(Number);
+    const [bm, by] = b.split('.').map(Number);
+    if (ay !== by) return by - ay;
+    return bm - am;
+  });
+  if (!window._archiveMonth || !months.includes(window._archiveMonth)) window._archiveMonth = months[0];
+  const names = {'01':'Январь','02':'Февраль','03':'Март','04':'Апрель','05':'Май','06':'Июнь','07':'Июль','08':'Август','09':'Сентябрь','10':'Октябрь','11':'Ноябрь','12':'Декабрь'};
+  const tabs = months.map(mk => { const [mm, yy] = mk.split('.'); return '<div class="month-tab '+(window._archiveMonth===mk?'active':'')+'" onclick="setArchiveMonth(\''+mk+'\')">'+(names[mm] ? names[mm] + ' ' + yy : mk)+'</div>'; }).join('');
+  const entries = byMonth[window._archiveMonth] || [];
+  const openSet = window._archiveOpen || new Set();
+  const rows = entries.slice().sort((a,b) => b.idx - a.idx).map(({entry, idx}) => renderArchiveRow(entry, idx, openSet)).join('');
+  return '<div class="month-selector">'+tabs+'</div>' + rows;
+}
+function setArchiveMonth(mk){ window._archiveMonth = mk; window._archiveOpen = new Set(); render(); }
+function toggleArchiveRow(id){ if (!window._archiveOpen) window._archiveOpen = new Set(); if (window._archiveOpen.has(id)) window._archiveOpen.delete(id); else window._archiveOpen.add(id); render(); }
+
+/* ============ РЕНДЕР ============ */
+
+function renderContent(){
+  const el=document.getElementById('content');
+  if(activeMain==='goals'){
+    const list= activeTab==='all'? state.subjects : state.subjects.filter(s=>s.id===activeTab);
+    el.innerHTML=list.map(s=>renderCard(s,s.cls)).join('');
+  } else if (activeMain === 'archive') el.innerHTML = renderArchiveMonth();
+  else if (activeMain === 'health') renderHealth();
+  else if (activeMain === 'clean') renderClean();
+  else if (activeMain === 'menu') renderMenu();
+  else if (activeMain === 'shop') renderShop();
+  else if (activeMain === 'finance') renderFinance();
+  else {
+    const list= activeTab==='all'? state.days : state.days.filter(d=>d.id===activeTab);
+    el.innerHTML=list.map(d=>renderCard(d,'day',d.name)).join('');
+  }
+}
+function render(){ renderSummary(); updateDiamondBalance(); renderMainTabs(); renderTabs(); renderContent(); }
+
+function addTask(cardId, inputEl){ const val=inputEl.value.trim(); if(!val) return; const card=getCardById(cardId); if(!card) return; card.tasks.push(val); inputEl.value=''; saveState(); render(); }
+function addTaskFromBtn(cardId, btn){ addTask(cardId, btn.previousElementSibling); }
+function deleteTask(cardId, idx){
+  const card=getCardById(cardId); if(!card) return;
+  if(!confirm('Удалить задачу?')) return;
+  card.tasks.splice(idx,1);
+  const nd={}; Object.keys(state.done).forEach(k=>{const p=k.split('::');const sid=p[0];const i=parseInt(p[1],10); if(sid===cardId){ if(i<idx)nd[k]=state.done[k]; else if(i>idx)nd[sid+'::'+(i-1)]=state.done[k]; } else nd[k]=state.done[k]; });
+  state.done=nd;
+  const nc={}; Object.keys(state.comments).forEach(k=>{const p=k.split('::');const sid=p[0];const i=parseInt(p[1],10); if(sid===cardId){ if(i<idx)nc[k]=state.comments[k]; else if(i>idx)nc[sid+'::'+(i-1)]=state.comments[k]; } else nc[k]=state.comments[k]; });
+  state.comments=nc;
+  saveState(); render();
+}
+function deleteCard(cardId){
+  if(!confirm('Удалить всю карточку?')) return;
+  state.subjects=state.subjects.filter(s=>s.id!==cardId);
+  state.days=state.days.filter(d=>d.id!==cardId);
+  const nd={}; Object.keys(state.done).forEach(k=>{ if(k.indexOf(cardId+'::')!==0)nd[k]=state.done[k]; });
+  state.done=nd;
+  const nc={}; Object.keys(state.comments).forEach(k=>{ if(k.indexOf(cardId+'::')!==0)nc[k]=state.comments[k]; });
+  state.comments=nc;
+  saveState(); render();
+}
+function addCard(){ const name=prompt('Название карточки:'); if(!name) return; const meta=prompt('Короткое описание (можно пусто):')||''; state.subjects.push({id:uid(),name:name,meta:meta,cls:'custom',tasks:[]}); saveState(); render(); }
+function showCommentEditor(cardId, idx){ document.querySelectorAll('.comment-editor.visible').forEach(el=>el.classList.remove('visible')); const el=document.getElementById('comment-editor-'+cardId+'-'+idx); if(!el) return; el.classList.add('visible'); el.querySelector('textarea').focus(); }
+function hideComment(cardId, idx){ const el=document.getElementById('comment-editor-'+cardId+'-'+idx); if(el) el.classList.remove('visible'); }
+function saveComment(cardId, idx, btnEl){
+  const editor=btnEl.closest('.comment-editor'); const value=editor.querySelector('textarea').value; const k=taskKey(cardId,idx);
+  if(value && value.trim()) state.comments[k]=value; else delete state.comments[k];
+  saveState();
+  const block=document.querySelector('.task-block[data-key="'+cardId+'::'+idx+'"]');
+  if(block){ const disp=block.querySelector('.comment-display'); if(disp){ if(value && value.trim()){ disp.textContent=value; disp.style.display='block'; } else { disp.textContent=''; disp.style.display='none'; } } const btn=block.querySelector('.task-btn'); if(btn) btn.classList.toggle('has-comment', !!(value && value.trim())); }
+  editor.classList.remove('visible');
+  showToast(value && value.trim() ? 'Комментарий сохранён' : 'Комментарий удалён');
+}
+
+function finishDay(cardId){
+  const card = state.days.find(d => d.id === cardId);
+  if (!card) return;
+  if (!confirm('Завершить день? Он уйдёт в архив, редактировать его больше нельзя.')) return;
+
+  const today = new Date();
+  const todayIdx = today.getDay();
+  const dayOrder = ['mon','tue','wed','thu','fri','sat','sun'];
+  const targetIdx = dayOrder.indexOf(cardId);
+  const todayOrder = todayIdx === 0 ? 6 : todayIdx - 1;
+  let diff = todayOrder - targetIdx;
+  if (diff < 0) diff += 7;
+
+  const targetDate = new Date(today);
+  targetDate.setDate(today.getDate() - diff);
+  const targetStr = dateKey(targetDate);
+  const dayId = cardId;
+
+  const isTrainingDay = ['wed','fri','sun'].includes(dayId);
+  const h = getHealth(targetStr);
+
+  let earned = 0;
+  let penalty = 0;
+
+  if (isTrainingDay && h.training) { earned += 15; logDiamonds(15, 'Тренировка (' + targetStr + ')', targetStr); }
+  if (isTrainingDay && !h.training) { penalty += 15; logDiamonds(-15, 'Пропуск: тренировка (' + targetStr + ')', targetStr); }
+
+  if (h.water > 0) {
+    earned += h.water;
+    logDiamonds(h.water, 'Вода: ' + h.water + '/5 стаканов (' + targetStr + ')', targetStr);
+  }
+
+  const vitCount = ['morning','noon','evening'].filter(v => h.vitamins[v]).length;
+  ['morning','noon','evening'].forEach(v => {
+    if (h.vitamins[v]) { earned += 1; logDiamonds(1, 'Витамины: ' + v + ' (' + targetStr + ')', targetStr); }
+    else { penalty += 1; logDiamonds(-1, 'Пропуск: витамины ' + v + ' (' + targetStr + ')', targetStr); }
+  });
+
+  if (h.sleep) {
+    if (h.sleep.status === 'good') { earned += 10; logDiamonds(10, 'Сон: отбой ' + h.sleep.time + ' (' + targetStr + ')', targetStr); }
+    else if (h.sleep.status === 'ok') { earned += 5; logDiamonds(5, 'Сон: отбой ' + h.sleep.time + ' (' + targetStr + ')', targetStr); }
+    else { penalty += 5; logDiamonds(-5, 'Сон: поздний отбой ' + h.sleep.time + ' (' + targetStr + ')', targetStr); }
+  } else {
+    penalty += 5;
+    logDiamonds(-5, 'Пропуск: сон не отмечен (' + targetStr + ')', targetStr);
+  }
+
+  const cardTasksTotal = card.tasks.length;
+  const cardTasksDone = card.tasks.filter((_, i) => isDone(cardId, i)).length;
+  const fullDay = cardTasksTotal > 0 && cardTasksDone === cardTasksTotal;
+  let dayBonus = 0;
+  if (fullDay) {
+    dayBonus = 15;
+    earned += dayBonus;
+    logDiamonds(dayBonus, '🎯 Бонус за 100% выполнения дня (' + targetStr + ')', targetStr);
+  }
+
+  const net = earned - penalty;
+  const before = state.diamonds || 0;
+  state.diamonds = Math.max(0, before + net);
+  updateDiamondBalance();
+  h.applied = { diamonds: earned, penalty: penalty, closed: true, bonus: dayBonus, fullDay: fullDay };
+
+  const targetDateObj = new Date(targetStr + 'T12:00:00');
+  const archivedLabel = String(targetDateObj.getDate()).padStart(2,'0') + '.' + String(targetDateObj.getMonth()+1).padStart(2,'0') + '.' + targetDateObj.getFullYear();
+  const entryTasks = card.tasks.map((t, i) => ({ text: t, done: isDone(cardId, i), comment: getComment(cardId, i) }));
+  const entry = { id: cardId + '_' + Date.now(), name: card.name, archivedAt: archivedLabel, dayDate: targetStr, tasks: entryTasks };
+  state.archive.push(entry);
+  card.tasks = [];
+  Object.keys(state.done).forEach(k => { if (k.indexOf(cardId + '::') === 0) delete state.done[k]; });
+  Object.keys(state.comments).forEach(k => { if (k.indexOf(cardId + '::') === 0) delete state.comments[k]; });
+
+  saveState();
+
+  if (net > 0) showToast('День закрыт. Начислено +' + net + ' 💎');
+  else if (net < 0) showToast('День закрыт. Списано ' + net + ' 💎', true);
+  else showToast('День закрыт. Баланс не изменился.');
+
+  render();
+}
+
+function restoreDay(archiveIdx){
+  if (!confirm('Вернуть день из архива? Он появится в «По дням» снова, архивная запись удалится.')) return;
+  const entry = state.archive[archiveIdx]; if (!entry) return;
+  const day = state.days.find(d => d.id === entry.id.split('_')[0]);
+  if (!day) { showToast('Не найден соответствующий день недели', true); return; }
+  day.tasks = entry.tasks.map(t => t.text);
+  entry.tasks.forEach((t, i) => { if (t.done) state.done[day.id + '::' + i] = true; if (t.comment && t.comment.trim()) state.comments[day.id + '::' + i] = t.comment; });
+  state.archive.splice(archiveIdx, 1);
+  saveState(); showToast('День возвращён из архива'); render();
+}
+
+function exportData(){
+  const toExport = {
+    subjects: state.subjects, days: state.days, done: state.done, comments: state.comments,
+    archive: state.archive || [], mealPlan: state.mealPlan || null,
+    diamonds: state.diamonds || 0, shop: state.shop || { purchasesThisWeek: 0, lastResetWeek: null },
+    completedCards: state.completedCards || {}, clean: state.clean || JSON.parse(JSON.stringify(DEFAULT_CLEAN)),
+    healthByDate: state.healthByDate || {},
+    diamondLog: state.diamondLog || [],
+    finance: state.finance || { incomes: [], expenses: [] }
+  };
+  const blob=new Blob([JSON.stringify(toExport,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='daily-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click(); URL.revokeObjectURL(url);
+  showToast('Файл экспортирован');
+}
+function importData(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+      if(data.subjects && data.done){
+        if(!data.days) data.days=JSON.parse(JSON.stringify(DEFAULT_DAYS));
+        if(!data.comments) data.comments={};
+        if(!data.archive) data.archive = [];
+        if(!data.mealPlan) data.mealPlan = JSON.parse(JSON.stringify(DEFAULT_MEAL_PLAN));
+        if(typeof data.diamonds !== 'number') data.diamonds = 0;
+        if(!data.shop) data.shop = { purchasesThisWeek: 0, lastResetWeek: null };
+        if(!data.completedCards) data.completedCards = {};
+        if(!data.clean || !data.clean.zones) data.clean = JSON.parse(JSON.stringify(DEFAULT_CLEAN));
+        if(!data.healthByDate) data.healthByDate = {};
+        if(!data.diamondLog) data.diamondLog = [];
+        if(!data.finance) data.finance = { incomes: [], expenses: [] };
+        state=data; saveState(); render();
+        showToast('Импорт прошёл успешно');
+      } else showToast('Неверный формат файла', true);
+    } catch(err){ showToast('Ошибка: '+err.message, true); }
+  };
+  reader.readAsText(file); ev.target.value='';
+}
+
+function uploadBg(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(e){ document.body.style.backgroundImage='url(\''+e.target.result+'\')'; localStorage.setItem(BG_KEY, e.target.result); };
+  reader.readAsDataURL(file); ev.target.value='';
+}
+function initBg(){
+  try{ const saved=localStorage.getItem(BG_KEY); if(saved) document.body.style.backgroundImage='url(\''+saved+'\')'; }catch(e){}
+}
+
+initBg();
+(function openTodayTab(){
+  const todayIdx = new Date().getDay();
+  const todayId = ['sun','mon','tue','wed','thu','fri','sat'][todayIdx];
+  activeMain = 'days';
+  activeTab = todayId;
+})();
+render();
+</script>
+</body>
+</html>
