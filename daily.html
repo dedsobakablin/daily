@@ -797,8 +797,9 @@ function renderFinance(){
   const expensesMain = round2(f.expenses.filter(e => (e.source || 'main') === 'main' && e.cat !== 'Кредитка').reduce((s, e) => s + (e.amount || 0), 0));
   const expensesCredit = round2(f.expenses.filter(e => e.source === 'credit').reduce((s, e) => s + (e.amount || 0), 0));
   const creditPayments = round2(f.expenses.filter(e => e.cat === 'Кредитка').reduce((s, e) => s + (e.amount || 0), 0));
-  const balanceMain = round2(totalIncome - expensesMain - creditPayments);
-  const initialCreditDebt = (state.finance && state.finance.initialCreditDebt) ? state.finance.initialCreditDebt : 0;
+  const initialMainBalance = (state.finance && typeof state.finance.initialMainBalance === 'number') ? state.finance.initialMainBalance : 0;
+  const initialCreditDebt = (state.finance && typeof state.finance.initialCreditDebt === 'number') ? state.finance.initialCreditDebt : 0;
+  const balanceMain = round2(initialMainBalance + totalIncome - expensesMain - creditPayments);
   const creditDebt = round2(Math.max(0, initialCreditDebt + expensesCredit - creditPayments));
   let totalCredit = 0, totalCreditDan = 0, totalLife = 0, totalSochi = 0, totalReserve = 0, totalOther = 0;
   f.incomes.forEach(i => { const d = i.distribution || {}; totalCredit += d.credit || 0; totalCreditDan += d.creditDan || 0; totalLife += d.life || 0; totalSochi += d.sochi || 0; totalReserve += d.reserve || 0; totalOther += d.other || 0; });
@@ -834,7 +835,8 @@ function renderFinance(){
         +'<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);">'
           +'<div>💵 Баланс основного: <b style="color:'+(balanceMain >= 0 ? '#4a7a4a' : '#b04040')+';">'+balanceMain+' ₽</b></div>'
           +'<div>💳 Долг по кредитке: <b style="color:'+(creditDebt > 0 ? '#b04040' : '#4a7a4a')+';">'+creditDebt+' ₽</b></div>'
-          +'<div style="font-size:12px;color:var(--muted);margin-top:6px;">Начальный долг: '+initialCreditDebt+' ₽ · Траты с кредитки: '+expensesCredit+' ₽ · Платежи: '+creditPayments+' ₽ · <span onclick="editInitialDebt()" style="cursor:pointer;text-decoration:underline;">изменить</span></div>'
+                    +'<div style="font-size:12px;color:var(--muted);margin-top:6px;">Начальный долг: '+initialCreditDebt+' ₽ · Траты с кредитки: '+expensesCredit+' ₽ · Платежи: '+creditPayments+' ₽ · <span onclick="editInitialDebt()" style="cursor:pointer;text-decoration:underline;">изменить</span></div>'
+          +'<div style="font-size:12px;color:var(--muted);margin-top:4px;">Стартовый баланс основного: '+initialMainBalance+' ₽ · <span onclick="editInitialMainBalance()" style="cursor:pointer;text-decoration:underline;">изменить</span></div>'
         +'</div>'
       +'</div>'
     +'</div>'
@@ -871,6 +873,18 @@ function editInitialDebt() {
   if (isNaN(num) || num < 0) { showToast('Некорректная сумма: ' + val, true); return; }
   state.finance.initialCreditDebt = Math.round(num * 100) / 100;
   saveState(); renderFinance(); showToast('Начальный долг: ' + state.finance.initialCreditDebt + ' ₽');
+}
+
+  function editInitialMainBalance() {
+  if (!state.finance) state.finance = { incomes: [], expenses: [] };
+  const current = (typeof state.finance.initialMainBalance === 'number') ? state.finance.initialMainBalance : 0;
+  const val = prompt('Фактический баланс основного счёта на сегодня (можно с копейками):', String(current).replace('.', ','));
+  if (val === null) return;
+  const normalized = val.replace(',', '.').trim();
+  const num = parseFloat(normalized);
+  if (isNaN(num)) { showToast('Некорректная сумма: ' + val, true); return; }
+  state.finance.initialMainBalance = Math.round(num * 100) / 100;
+  saveState(); renderFinance(); showToast('Стартовый баланс: ' + state.finance.initialMainBalance + ' ₽');
 }
 
 function renderMenu(){
@@ -1234,6 +1248,7 @@ window.addIncome = addIncome;
 window.addExpense = addExpense;
 window.deleteExpense = deleteExpense;
 window.editInitialDebt = editInitialDebt;
+window.editInitialMainBalance = editInitialMainBalance;
 window.setArchiveMonth = setArchiveMonth;
 window.toggleArchiveRow = toggleArchiveRow;
 </script>
