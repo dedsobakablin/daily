@@ -311,13 +311,14 @@ const DEFAULT_MEAL_PLAN = {
 
 const DEFAULT_CLEAN = {
   zones: {
-    kitchen: { name: 'Кухня', doneAt: null },
+    kitchen: { name: 'Кухня (генеральная)', doneAt: null },
     bathroom: { name: 'Ванная', doneAt: null },
     hallway: { name: 'Прихожая', doneAt: null },
     room: { name: 'Основная комната', doneAt: null },
     vacuum: { name: 'Пылесос + мытьё полов', doneAt: null },
     dust: { name: 'Протереть пыль', doneAt: null }
   },
+  dishes: { count: 0, weekStart: null },
   weekStart: null,
   dachaMode: false,
   bonusGiven: false
@@ -649,30 +650,58 @@ function renderClean(){
   if (!state.clean.zones) { state.clean = JSON.parse(JSON.stringify(DEFAULT_CLEAN)); saveState(); }
   const c = state.clean;
   const thisWeek = getWeekKey();
-  if (c.weekStart !== thisWeek) { Object.keys(c.zones).forEach(k => { c.zones[k].doneAt = null; }); c.weekStart = thisWeek; c.bonusGiven = false; saveState(); }
+  if (c.weekStart !== thisWeek) {
+    Object.keys(c.zones).forEach(k => { c.zones[k].doneAt = null; });
+    c.weekStart = thisWeek;
+    c.bonusGiven = false;
+    saveState();
+  }
+  if (!c.dishes) c.dishes = { count: 0, weekStart: null };
+  if (c.dishes.weekStart !== thisWeek) {
+    c.dishes.count = 0;
+    c.dishes.weekStart = thisWeek;
+    saveState();
+  }
+
   const zoneKeys = ['kitchen','bathroom','hallway','room','vacuum','dust'];
   const doneCount = zoneKeys.filter(k => c.zones[k].doneAt).length;
   const allDone = doneCount === 6;
+
   const zonesHtml = zoneKeys.map(k => {
     const z = c.zones[k]; const done = !!z.doneAt;
     let dateStr = '';
     if (done) { const parts = z.doneAt.split('-'); dateStr = parts[2] + '.' + parts[1]; }
     return '<label class="clean-day '+(done?'done':'')+'"><input type="checkbox" '+(done?'checked':'')+' onchange="toggleCleanZone(\''+k+'\')"><span class="clean-day-name">'+z.name+'</span><span class="clean-day-zone">'+(done ? 'убрана ' + dateStr : 'не убрана')+'</span></label>';
   }).join('');
+
+  const dishesCount = c.dishes.count || 0;
+  const dishesLeft = Math.max(0, 7 - dishesCount);
+  const dishesHtml = '<div style="margin-top:20px;padding:16px;background:rgba(164,184,200,0.12);border-left:3px solid #a4b8c8;border-radius:6px;">'
+    +'<div style="font-size:15px;font-weight:bold;margin-bottom:8px;">🍽 Мытьё посуды · +3 💎 за раз</div>'
+    +'<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">'
+      +'<button class="fin-btn" onclick="addDishes()">+ Помыла посуду</button>'
+      +'<div style="font-size:14px;color:var(--muted);">Отмечено на этой неделе: <b style="color:var(--text);font-size:16px;">'+dishesCount+' / 7</b>'+(dishesCount >= 7 ? ' ✅' : '')+'</div>'
+    +'</div>'
+    +(dishesCount > 0 ? '<div style="margin-top:10px;font-size:13px;color:var(--muted);">Осталось до лимита: '+dishesLeft+'</div>' : '')
+  +'</div>';
+
   el.innerHTML = '<div class="clean-panel">'
     +'<div class="clean-header"><div class="clean-title">Уборка на неделю</div>'
       +'<button class="clean-dacha-btn '+(c.dachaMode?'active':'')+'" onclick="toggleDacha()">'+(c.dachaMode ? '🏠 На даче' : '🏡 Уезжаем на дачу')+'</button>'
     +'</div>'
     +zonesHtml
     +'<div style="margin-top:20px;font-size:16px;color:var(--text);"><b>Прогресс: '+doneCount+' / 6</b>'+(allDone ? ' 🎉 Все зоны убраны!' : '')+'</div>'
-    +'<div style="margin-top:20px;font-size:13px;color:var(--muted);line-height:1.7;">'
+    +dishesHtml
+    +'<div style="margin-top:24px;font-size:13px;color:var(--muted);line-height:1.7;">'
       +'<b>Правила:</b><br>'
       +'· Каждая зона — <b>+10 💎</b>, когда отмечаешь<br>'
       +'· Все 6 зон за неделю — <b>бонус +20 💎</b><br>'
-      +'· Неделя начинается с понедельника, зоны обнуляются автоматически'
+      +'· Мытьё посуды — <b>+3 💎</b> за раз, до 7 раз в неделю<br>'
+      +'· Неделя начинается с понедельника, всё обнуляется'
     +'</div>'
   +'</div>';
 }
+  
 function toggleCleanZone(key) {
   const c = state.clean; if (!c.zones[key]) return;
   const z = c.zones[key]; const wasDone = !!z.doneAt;
@@ -683,6 +712,19 @@ function toggleCleanZone(key) {
   else if (!allDone && c.bonusGiven) { c.bonusGiven = false; state.diamonds = Math.max(0,(state.diamonds||0)-20); logDiamonds(-20, 'Снят бонус за все зоны'); }
   saveState(); renderClean();
 }
+
+  function addDishes() {
+  const c = state.clean;
+  if (!c.dishes) c.dishes = { count: 0, weekStart: getWeekKey() };
+  if (c.dishes.count >= 7) { showToast('Лимит 7 раз в неделю исчерпан', true); return; }
+  c.dishes.count += 1;
+  state.diamonds = (state.diamonds || 0) + 3;
+  logDiamonds(3, 'Мытьё посуды (' + c.dishes.count + '/7)', dateKey());
+  showToast('+3 💎 за посуду');
+  saveState();
+  renderClean();
+}
+  
 function toggleDacha() { state.clean.dachaMode = !state.clean.dachaMode; saveState(); renderClean(); }
 
 const SHOP_PRICE = 100;
@@ -1185,6 +1227,7 @@ window.markSleepNow = markSleepNow;
 window.setSleepTime = setSleepTime;
 window.clearSleep = clearSleep;
 window.toggleCleanZone = toggleCleanZone;
+window.addDishes = addDishes;
 window.toggleDacha = toggleDacha;
 window.buyShop = buyShop;
 window.addIncome = addIncome;
