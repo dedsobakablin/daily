@@ -230,7 +230,7 @@
     <div class="main-tab" data-main="health" onclick="setMainTab('health')">💚 Здоровье</div>
     <div class="main-tab" data-main="clean" onclick="setMainTab('clean')">🧹 Уборка</div>
     <div class="main-tab" data-main="menu" onclick="setMainTab('menu')">🍽 Меню</div>
-        <div class="main-tab" data-main="goals" onclick="setMainTab('goals')">🎯 Цели</div>
+    <div class="main-tab" data-main="goals" onclick="setMainTab('goals')">🎯 Цели</div>
     <div class="main-tab" data-main="finance" onclick="setMainTab('finance')">💰 Финансы</div>
     <div class="main-tab" data-main="archive" onclick="setMainTab('archive')">📦 Архив</div>
   </div>
@@ -240,7 +240,8 @@
     <div><div class="label">Из</div><div class="big" id="totalAll">0</div></div>
     <div><div class="label">Прогресс</div><div class="big" id="totalPercent">0%</div></div>
     <div class="top-buttons">
-      <button class="small" onclick="exportData()">Экспорт</button>
+      <button class="small" onclick="exportData(false)">Экспорт (7 дней)</button>
+      <button class="small" onclick="exportData(true)" title="Полная история">Экспорт всё</button>
       <label class="small-btn">Импорт<input type="file" accept=".json" style="display:none" onchange="importData(event)"></label>
     </div>
   </div>
@@ -273,7 +274,8 @@ const fbApp = initializeApp(firebaseConfig);
 const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
 const provider = new GoogleAuthProvider();
-  const FIN_CATEGORIES = ['Еда','Кафе/доставка','Транспорт','Дом','Здоровье и уход','Учёба','Творчество','Развлечения','Кредитка','Кредитка Дани','Помощь Дане','Копилка (Сочи)','Резерв','Прочее'];
+const FIN_CATEGORIES = ['Еда','Кафе/доставка','Транспорт','Дом','Здоровье и уход','Учёба','Творчество','Развлечения','Кредитка','Кредитка Дани','Помощь Дане','Копилка (Сочи)','Резерв','Прочее'];
+const EXPORT_DAYS = 7;
 
 const DEFAULT_SUBJECTS = [
   { id:'graphics', name:'Графика в дизайне', meta:'Настольная игра', cls:'graphics', tasks:['Отрисовать поле с нуля','Отрисовать 21 карточку','Отрисовать дизайн коробки','Распечатать все компоненты','Собрать коробку и разложить комплектующие'] },
@@ -404,13 +406,10 @@ function logDiamonds(amount, reason, dateStr) {
   if (state.diamondLog.length > 1000) state.diamondLog = state.diamondLog.slice(-1000);
 }
 
-// === Сохранение в Firestore (с дебаунсом) ===
 let saveTimeout = null;
 function saveState() {
   if (!currentUser) return;
-  // Кэш в localStorage для мгновенной загрузки
   try { localStorage.setItem('daily_cache_' + currentUser.uid, JSON.stringify(state)); } catch(e){}
-  // Дебаунс: сохраняем через 1.5 сек после последнего изменения
   clearTimeout(saveTimeout);
   saveTimeout = setTimeout(async () => {
     try {
@@ -422,7 +421,8 @@ function saveState() {
     }
   }, 1500);
 }
-  function renderSummary(){
+
+function renderSummary(){
   const {done,total}=totalProgress();
   const percent= total? Math.round(done/total*100):0;
   document.getElementById('totalDone').textContent=done;
@@ -524,7 +524,7 @@ function renderHealth(){
   const todayStr = dateKey(today);
   if (!healthViewDate) healthViewDate = todayStr;
   const dates = [];
-  for (let i = 0; i < 14; i++) { const d = new Date(today); d.setDate(d.getDate() - i); dates.push(d); }
+  for (let i = 0; i < 7; i++) { const d = new Date(today); d.setDate(d.getDate() - i); dates.push(d); }
   const dateTabs = dates.map(d => {
     const ds = dateKey(d); const isToday = ds === todayStr;
     const dayNames = ['вс','пн','вт','ср','чт','пт','сб'];
@@ -713,7 +713,7 @@ function toggleCleanZone(key) {
   saveState(); renderClean();
 }
 
-  function addDishes() {
+function addDishes() {
   const c = state.clean;
   if (!c.dishes) c.dishes = { count: 0, weekStart: getWeekKey() };
   if (c.dishes.count >= 7) { showToast('Лимит 7 раз в неделю исчерпан', true); return; }
@@ -835,7 +835,7 @@ function renderFinance(){
         +'<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);">'
           +'<div>💵 Баланс основного: <b style="color:'+(balanceMain >= 0 ? '#4a7a4a' : '#b04040')+';">'+balanceMain+' ₽</b></div>'
           +'<div>💳 Долг по кредитке: <b style="color:'+(creditDebt > 0 ? '#b04040' : '#4a7a4a')+';">'+creditDebt+' ₽</b></div>'
-                    +'<div style="font-size:12px;color:var(--muted);margin-top:6px;">Начальный долг: '+initialCreditDebt+' ₽ · Траты с кредитки: '+expensesCredit+' ₽ · Платежи: '+creditPayments+' ₽ · <span onclick="editInitialDebt()" style="cursor:pointer;text-decoration:underline;">изменить</span></div>'
+          +'<div style="font-size:12px;color:var(--muted);margin-top:6px;">Начальный долг: '+initialCreditDebt+' ₽ · Траты с кредитки: '+expensesCredit+' ₽ · Платежи: '+creditPayments+' ₽ · <span onclick="editInitialDebt()" style="cursor:pointer;text-decoration:underline;">изменить</span></div>'
           +'<div style="font-size:12px;color:var(--muted);margin-top:4px;">Стартовый баланс основного: '+initialMainBalance+' ₽ · <span onclick="editInitialMainBalance()" style="cursor:pointer;text-decoration:underline;">изменить</span></div>'
         +'</div>'
       +'</div>'
@@ -874,8 +874,7 @@ function editInitialDebt() {
   state.finance.initialCreditDebt = Math.round(num * 100) / 100;
   saveState(); renderFinance(); showToast('Начальный долг: ' + state.finance.initialCreditDebt + ' ₽');
 }
-
-  function editInitialMainBalance() {
+function editInitialMainBalance() {
   if (!state.finance) state.finance = { incomes: [], expenses: [] };
   const current = (typeof state.finance.initialMainBalance === 'number') ? state.finance.initialMainBalance : 0;
   const val = prompt('Фактический баланс основного счёта на сегодня (можно с копейками):', String(current).replace('.', ','));
@@ -1064,13 +1063,53 @@ function restoreDay(archiveIdx){
   saveState(); showToast('День возвращён'); render();
 }
 
-function exportData(){
-  const toExport = { subjects: state.subjects, days: state.days, done: state.done, comments: state.comments, archive: state.archive || [], mealPlan: state.mealPlan || null, diamonds: state.diamonds || 0, shop: state.shop || { purchasesThisWeek: 0, lastResetWeek: null }, completedCards: state.completedCards || {}, clean: state.clean || JSON.parse(JSON.stringify(DEFAULT_CLEAN)), healthByDate: state.healthByDate || {}, diamondLog: state.diamondLog || [], finance: state.finance || { incomes: [], expenses: [] } };
-  const blob=new Blob([JSON.stringify(toExport,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download='daily-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click(); URL.revokeObjectURL(url);
-  showToast('Файл экспортирован');
+function getCutoffDateStr(daysBack) {
+  const d = new Date();
+  d.setDate(d.getDate() - daysBack);
+  return dateKey(d);
 }
+
+function exportData(full){
+  const cutoff = full ? null : getCutoffDateStr(EXPORT_DAYS);
+  const keepByDate = (dateStr) => {
+    if (!cutoff) return true;
+    if (!dateStr) return false;
+    return dateStr >= cutoff;
+  };
+
+  const archiveFiltered = (state.archive || []).filter(e => keepByDate(e.dayDate));
+  const healthFiltered = {};
+  Object.keys(state.healthByDate || {}).forEach(k => { if (keepByDate(k)) healthFiltered[k] = state.healthByDate[k]; });
+  const logFiltered = (state.diamondLog || []).filter(e => keepByDate(e.date));
+
+  const toExport = {
+    subjects: state.subjects,
+    days: state.days,
+    done: state.done,
+    comments: state.comments,
+    archive: archiveFiltered,
+    mealPlan: state.mealPlan || null,
+    diamonds: state.diamonds || 0,
+    shop: state.shop || { purchasesThisWeek: 0, lastResetWeek: null },
+    completedCards: state.completedCards || {},
+    clean: state.clean || JSON.parse(JSON.stringify(DEFAULT_CLEAN)),
+    healthByDate: healthFiltered,
+    diamondLog: logFiltered,
+    finance: state.finance || { incomes: [], expenses: [] }
+  };
+  if (state.goals) toExport.goals = state.goals;
+
+  const suffix = full ? 'full' : 'week';
+  const blob = new Blob([JSON.stringify(toExport, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'daily-backup-' + new Date().toISOString().slice(0,10) + '-' + suffix + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(full ? 'Полная история экспортирована' : 'Экспорт за 7 дней');
+}
+
 function importData(ev){
   const file=ev.target.files[0]; if(!file) return;
   const reader=new FileReader();
@@ -1089,13 +1128,29 @@ function importData(ev){
         if(!data.healthByDate) data.healthByDate = {};
         if(!data.diamondLog) data.diamondLog = [];
         if(!data.finance) data.finance = { incomes: [], expenses: [] };
+
+        // Мерж архива: локальные записи сохраняются, файл добавляет/обновляет свои
         const localArchive = state.archive || [];
         const fileArchive = data.archive || [];
-        const seen = new Set();
-        const merged = [];
-        localArchive.forEach(entry => { if (!seen.has(entry.id)) { merged.push(entry); seen.add(entry.id); } });
-        fileArchive.forEach(entry => { if (!seen.has(entry.id)) { merged.push(entry); seen.add(entry.id); } });
-        data.archive = merged;
+        const byId = new Map();
+        localArchive.forEach(entry => byId.set(entry.id, entry));
+        fileArchive.forEach(entry => byId.set(entry.id, entry));
+        data.archive = Array.from(byId.values());
+
+        // Мерж healthByDate: локальные даты, которых нет в файле, остаются
+        const localHealth = state.healthByDate || {};
+        const fileHealth = data.healthByDate || {};
+        data.healthByDate = Object.assign({}, localHealth, fileHealth);
+
+        // Мерж diamondLog: объединяем по ts, дубли отбрасываем
+        const localLog = state.diamondLog || [];
+        const fileLog = data.diamondLog || [];
+        const seenTs = new Set();
+        const mergedLog = [];
+        localLog.concat(fileLog).forEach(entry => { if (!seenTs.has(entry.ts)) { seenTs.add(entry.ts); mergedLog.push(entry); } });
+        mergedLog.sort((a,b) => a.ts - b.ts);
+        data.diamondLog = mergedLog;
+
         state = data;
         saveState(); render();
         showToast('Импорт прошёл успешно');
@@ -1113,16 +1168,10 @@ function uploadBg(ev){
 }
 function initBg(){ try{ const saved=localStorage.getItem('daily_bg_v2'); if(saved) document.body.style.backgroundImage='url(\''+saved+'\')'; }catch(e){} }
 
-// === АУТЕНТИФИКАЦИЯ И СИНХРОНИЗАЦИЯ ===
 window.signInWithGoogle = async function() {
-  try {
-    await signInWithPopup(auth, provider);
-  } catch(e) {
-    console.error(e);
-    alert('Ошибка входа: ' + e.message);
-  }
+  try { await signInWithPopup(auth, provider); }
+  catch(e) { console.error(e); alert('Ошибка входа: ' + e.message); }
 };
-
 window.signOutUser = async function() {
   if (confirm('Выйти из аккаунта?')) {
     if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
@@ -1134,7 +1183,6 @@ async function loadUserData(user) {
   document.getElementById('loadingScreen').style.display = 'block';
   document.getElementById('app').style.display = 'none';
 
-  // Сначала пробуем localStorage-кэш — для мгновенной загрузки
   try {
     const cached = localStorage.getItem('daily_cache_' + user.uid);
     if (cached) {
@@ -1150,14 +1198,12 @@ async function loadUserData(user) {
     }
   } catch(e) {}
 
-  // Теперь грузим из Firestore
   const ref = doc(db, 'users', user.uid, 'data', 'state');
   try {
     const snap = await getDoc(ref);
     if (snap.exists()) {
       state = snap.data();
     } else {
-      // В Firestore пусто. Если есть локальный кэш — спросим, переносить ли.
       const cached = localStorage.getItem('daily_cache_' + user.uid);
       if (cached) {
         if (confirm('В облаке нет данных. Перенести текущие локальные данные в облако?')) {
@@ -1184,12 +1230,10 @@ async function loadUserData(user) {
   document.getElementById('userName').textContent = user.displayName || user.email || '';
   render();
 
-  // Подписываемся на изменения из облака (для синхронизации между устройствами)
   if (unsubscribeSnapshot) unsubscribeSnapshot();
   unsubscribeSnapshot = onSnapshot(ref, (snap) => {
     if (snap.exists() && !isRendering) {
       const cloudData = snap.data();
-      // Проверяем, отличаются ли данные (грубо — по кол-ву галочек и diamonds)
       const cloudDone = Object.keys(cloudData.done || {}).length;
       const localDone = Object.keys(state.done || {}).length;
       if (cloudData.diamonds !== state.diamonds || cloudDone !== localDone) {
@@ -1216,7 +1260,6 @@ onAuthStateChanged(auth, async (user) => {
 
 initBg();
 
-// Экспортируем функции в window, чтобы inline-onclick работали
 window.setMainTab = setMainTab;
 window.setTab = setTab;
 window.toggle = toggle;
