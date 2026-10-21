@@ -344,7 +344,8 @@ function defaultState() {
     clean: JSON.parse(JSON.stringify(DEFAULT_CLEAN)),
     healthByDate: {},
     diamondLog: [],
-    finance: JSON.parse(JSON.stringify(DEFAULT_FINANCE))
+    finance: JSON.parse(JSON.stringify(DEFAULT_FINANCE)),
+    _updatedAt: 0
   };
 }
 
@@ -409,6 +410,7 @@ function logDiamonds(amount, reason, dateStr) {
 let saveTimeout = null;
 function saveState() {
   if (!currentUser) return;
+  state._updatedAt = Date.now();
   try { localStorage.setItem('daily_cache_' + currentUser.uid, JSON.stringify(state)); } catch(e){}
   clearTimeout(saveTimeout);
   saveTimeout = setTimeout(async () => {
@@ -418,6 +420,8 @@ function saveState() {
     } catch(e) {
       console.error('Save error:', e);
       showToast('Ошибка сохранения: ' + e.message, true);
+    } finally {
+      saveTimeout = null;
     }
   }, 1500);
 }
@@ -998,9 +1002,8 @@ function saveComment(cardId, idx, btnEl){
   const editor=btnEl.closest('.comment-editor'); const value=editor.querySelector('textarea').value; const k=taskKey(cardId,idx);
   if(value && value.trim()) state.comments[k]=value; else delete state.comments[k];
   saveState();
-  const block=document.querySelector('.task-block[data-key="'+cardId+'::'+idx+'"]');
-  if(block){ const disp=block.querySelector('.comment-display'); if(disp){ if(value && value.trim()){ disp.textContent=value; disp.style.display='block'; } else { disp.textContent=''; disp.style.display='none'; } } const btn=block.querySelector('.task-btn'); if(btn) btn.classList.toggle('has-comment', !!(value && value.trim())); }
   editor.classList.remove('visible');
+  render();
   showToast(value && value.trim() ? 'Комментарий сохранён' : 'Комментарий удалён');
 }
 
@@ -1128,8 +1131,8 @@ function importData(ev){
         if(!data.healthByDate) data.healthByDate = {};
         if(!data.diamondLog) data.diamondLog = [];
         if(!data.finance) data.finance = { incomes: [], expenses: [] };
+        if(typeof data._updatedAt !== 'number') data._updatedAt = Date.now();
 
-        // Мерж архива: локальные записи сохраняются, файл добавляет/обновляет свои
         const localArchive = state.archive || [];
         const fileArchive = data.archive || [];
         const byId = new Map();
@@ -1137,12 +1140,10 @@ function importData(ev){
         fileArchive.forEach(entry => byId.set(entry.id, entry));
         data.archive = Array.from(byId.values());
 
-        // Мерж healthByDate: локальные даты, которых нет в файле, остаются
         const localHealth = state.healthByDate || {};
         const fileHealth = data.healthByDate || {};
         data.healthByDate = Object.assign({}, localHealth, fileHealth);
 
-        // Мерж diamondLog: объединяем по ts, дубли отбрасываем
         const localLog = state.diamondLog || [];
         const fileLog = data.diamondLog || [];
         const seenTs = new Set();
@@ -1203,11 +1204,13 @@ async function loadUserData(user) {
     const snap = await getDoc(ref);
     if (snap.exists()) {
       state = snap.data();
+      if (typeof state._updatedAt !== 'number') state._updatedAt = 0;
     } else {
       const cached = localStorage.getItem('daily_cache_' + user.uid);
       if (cached) {
         if (confirm('В облаке нет данных. Перенести текущие локальные данные в облако?')) {
           state = JSON.parse(cached);
+          if (typeof state._updatedAt !== 'number') state._updatedAt = Date.now();
           await setDoc(ref, state);
         } else {
           state = defaultState();
@@ -1232,16 +1235,15 @@ async function loadUserData(user) {
 
   if (unsubscribeSnapshot) unsubscribeSnapshot();
   unsubscribeSnapshot = onSnapshot(ref, (snap) => {
-    if (snap.exists() && !isRendering) {
-      const cloudData = snap.data();
-      const cloudDone = Object.keys(cloudData.done || {}).length;
-      const localDone = Object.keys(state.done || {}).length;
-      if (cloudData.diamonds !== state.diamonds || cloudDone !== localDone) {
-        state = cloudData;
-        try { localStorage.setItem('daily_cache_' + user.uid, JSON.stringify(state)); } catch(e){}
-        render();
-      }
-    }
+    if (!snap.exists() || isRendering) return;
+    if (saveTimeout) return;
+    const cloudData = snap.data();
+    const cloudTs = typeof cloudData._updatedAt === 'number' ? cloudData._updatedAt : 0;
+    const localTs = typeof state._updatedAt === 'number' ? state._updatedAt : 0;
+    if (cloudTs <= localTs) return;
+    state = cloudData;
+    try { localStorage.setItem('daily_cache_' + user.uid, JSON.stringify(state)); } catch(e){}
+    render();
   });
 }
 
