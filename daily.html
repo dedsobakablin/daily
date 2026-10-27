@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ежедневник</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💎</text></svg>">
 <style>
   :root {
     --bg: #f7f5f2; --card: rgba(255, 255, 255, 0.95); --text: #2a2a2a; --muted: #8a8a8a;
@@ -476,10 +475,6 @@ function renderCard(card, cls, metaOverride){
   const isDay = !!state.days.find(d=>d.id===card.id);
   const finishBtn = isDay ? '<button class="card-finish" onclick="finishDay(\''+card.id+'\')">Завершить</button>' : '';
   const mealBlock = card.meal ? '<div style="margin-top:14px;padding:10px 14px;background:rgba(200,184,160,0.18);border-left:2px solid #c8b8a0;border-radius:6px;font-size:13px;font-style:italic;color:#5a5a5a;">🍽 ' + escapeHtml(card.meal) + '</div>' : '';
-  const trainBlock = (() => {
-    if (!['wed','fri','sun'].includes(card.id)) return '';
-    return '<div style="margin-top:10px;padding:10px 14px;background:rgba(164,200,184,0.12);border-left:2px solid #a4c8b8;border-radius:6px;font-size:13px;color:#4a5a4a;">💪 Тренировка: ВК</div>';
-  })();
   const cleanBlock = (() => {
     const c = state.clean;
     if (!c || !c.zones) return '';
@@ -488,7 +483,7 @@ function renderCard(card, cls, metaOverride){
     const names = notDone.map(k => c.zones[k].name).join(', ');
     return '<div style="margin-top:10px;padding:10px 14px;background:rgba(200,184,160,0.12);border-left:2px solid #c8b8a0;border-radius:6px;font-size:13px;color:#5a5a5a;">🧹 Осталось убрать: ' + escapeHtml(names) + '</div>';
   })();
-  return '<div class="card '+cls+'"><button class="card-delete" onclick="deleteCard(\''+card.id+'\')">×</button>'+finishBtn+'<h2>'+escapeHtml(card.name)+'</h2><div class="meta">'+escapeHtml(metaOverride||card.meta||'')+' · '+p.done+'/'+p.total+' · '+percent+'%</div><div class="progress-wrap"><div class="progress-bar" style="width:'+percent+'%"></div></div>'+tasksHtml+mealBlock+trainBlock+cleanBlock+'<div class="add-task"><input type="text" placeholder="Новая задача..." onkeydown="if(event.key===\'Enter\')addTask(\''+card.id+'\',this)"><button onclick="addTaskFromBtn(\''+card.id+'\',this)">+</button></div></div>';
+  return '<div class="card '+cls+'"><button class="card-delete" onclick="deleteCard(\''+card.id+'\')">×</button>'+finishBtn+'<h2>'+escapeHtml(card.name)+'</h2><div class="meta">'+escapeHtml(metaOverride||card.meta||'')+' · '+p.done+'/'+p.total+' · '+percent+'%</div><div class="progress-wrap"><div class="progress-bar" style="width:'+percent+'%"></div></div>'+tasksHtml+mealBlock+cleanBlock+'<div class="add-task"><input type="text" placeholder="Новая задача..." onkeydown="if(event.key===\'Enter\')addTask(\''+card.id+'\',this)"><button onclick="addTaskFromBtn(\''+card.id+'\',this)">+</button></div></div>';
 }
 
 function toggle(a,b){
@@ -554,7 +549,7 @@ function renderHealth(){
     const nextDate = new Date(todayD); nextDate.setDate(nextDate.getDate() + daysAhead);
     const nextStr = String(nextDate.getDate()).padStart(2,'0') + '.' + String(nextDate.getMonth()+1).padStart(2,'0');
     const label = daysAhead === 1 ? 'завтра' : nextStr;
-    trainingHtml = '<div style="font-size:13px;color:var(--muted);font-style:italic;">Сегодня не тренировочный день. Ближайшая тренировка: '+label+' — Тренировка ВК.</div>';
+    trainingHtml = '<div style="font-size:13px;color:var(--muted);font-style:italic;">Сегодня не тренировочный день. Ближайшая тренировка: '+label+' — Тренировка.</div>';
   }
   const waterHtml = Array.from({length: 5}, (_, i) => '<div class="water-glass '+(i < h.water ? 'done' : '')+'" onclick="setWaterDate('+(i+1)+')">💧</div>').join('');
   const vitaminSlots = [
